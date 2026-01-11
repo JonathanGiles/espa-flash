@@ -35,6 +35,12 @@ body {
     padding: 2rem 1rem;
 }
 
+@media (max-width: 640px) {
+    body {
+        padding: 1rem 0.5rem;
+    }
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -72,6 +78,14 @@ header::before {
     justify-content: center;
     gap: 0.875rem;
     margin-bottom: 0.625rem;
+}
+
+.logo-icon {
+    font-size: 40px;
+    color: white;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 8px;
+    border-radius: 8px;
 }
 
 .logo h1 {
@@ -112,17 +126,32 @@ header::before {
 
 /* Main Content */
 main {
-    padding: 2rem;
+    padding: 0;
 }
 
 /* Card Styles */
 .card {
     background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    padding: 1.75rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 1px 2px var(--shadow);
+    border: none;
+    border-radius: 0;
+    padding: 2rem;
+    margin-bottom: 0;
+    box-shadow: none;
+}
+
+.device-config {
+    border-bottom: 1px solid var(--border-light);
+    padding: 2rem;
+}
+
+@media (max-width: 768px) {
+    .card {
+        padding: 1.5rem;
+    }
+    
+    .device-config {
+        padding: 1.5rem;
+    }
 }
 
 .card h2 {
@@ -835,9 +864,11 @@ button {
     border: 1px dashed var(--border);
 }
 
-.empty-state svg {
+.empty-state .empty-icon {
+    font-size: 48px;
     margin-bottom: 1rem;
     opacity: 0.4;
+    color: #9CA3AF;
 }
 
 .empty-state h3 {
@@ -891,9 +922,7 @@ esp-web-install-button {
 
 /* Build Info Section */
 .build-info {
-    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
-    border: 1px solid #FCD34D;
-    border-left: 4px solid var(--warning);
+    background: var(--bg-primary);
 }
 
 .build-explanation {
@@ -924,6 +953,70 @@ esp-web-install-button {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.build-method h3 i {
+    font-size: 20px;
+    color: var(--primary);
+}
+
+.build-target-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    font-family: 'Courier New', monospace;
+}
+
+.build-note {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+    border: 1px solid #FED7AA;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    color: #9A3412;
+    margin-bottom: 1rem;
+}
+
+.build-note i {
+    color: #EA580C;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.build-target-selector {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+}
+
+.build-target-selector label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.build-target-selector label i {
+    color: var(--primary);
+    font-size: 16px;
+}
+
+.build-target-selector .device-select {
+    width: 100%;
 }
 
 .build-method p {
@@ -995,12 +1088,22 @@ footer .espa-link {
         padding: 2rem 1rem;
     }
 
+    .logo {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .logo-icon {
+        font-size: 32px;
+    }
+
     .logo h1 {
         font-size: 1.5rem;
+        text-align: center;
     }
 
     .subtitle {
-        font-size: 1rem;
+        font-size: 0.875rem;
     }
 
     main {
@@ -1008,7 +1111,12 @@ footer .espa-link {
     }
 
     .card {
-        padding: 1.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .card h2 {
+        font-size: 1.125rem;
     }
 
     .releases-grid {
@@ -1019,6 +1127,16 @@ footer .espa-link {
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
+    }
+
+    .section-actions {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .btn-secondary {
+        flex: 1;
     }
 
     .blade-panel {
@@ -1493,6 +1611,102 @@ footer .espa-link {
     gap: 0.5rem;
 }
 
+/* Flash Progress Styles */
+.flash-progress {
+    padding: 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+}
+
+.progress-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.progress-header i {
+    color: var(--primary);
+    font-size: 1.125rem;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.progress-details {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+}
+
+.progress-error {
+    text-align: center;
+    color: var(--danger);
+}
+
+.progress-error i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.progress-error strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 1.125rem;
+}
+
+/* Flash Success Styles */
+.flash-success {
+    text-align: center;
+    padding: 2rem 1.5rem;
+}
+
+.success-icon {
+    font-size: 3.5rem;
+    color: var(--secondary);
+    margin-bottom: 1rem;
+}
+
+.flash-success h3 {
+    font-size: 1.375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.flash-success p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.success-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.success-actions button {
+    min-width: 180px;
+}
+
 .flash-dialog-button-container .btn-primary {
     min-width: 140px;
     height: 38px;
@@ -1630,6 +1844,13 @@ dialog:not(.flash-dialog):not(.changelog-blade)::backdrop {
 
 .browser-list svg {
     flex-shrink: 0;
+
+.browser-list i {
+    flex-shrink: 0;
+    color: #0891B2;
+    font-size: 20px;
+}
+
 }
 
 .help-note {
@@ -1824,4 +2045,257 @@ dialog:not(.flash-dialog):not(.changelog-blade)::backdrop {
 
 .troubleshooting-item a:hover {
     text-decoration: underline;
+}
+
+.browser-list i {
+    flex-shrink: 0;
+    color: #0891B2;
+    font-size: 20px;
+}
+
+/* Custom Binary Upload Section */
+.custom-binary-section {
+    background: var(--bg-primary);
+}
+
+.custom-binary-section h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 0.75rem;
+}
+
+.custom-binary-section h2 i {
+    color: var(--primary);
+}
+
+.custom-binary-upload {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.upload-section h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.upload-section h3 i {
+    color: var(--primary);
+    font-size: 18px;
+}
+
+.file-upload-area {
+    position: relative;
+}
+
+.file-input {
+    position: absolute;
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    z-index: -1;
+}
+
+.file-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 2rem 1rem;
+    background: white;
+    border: 2px dashed var(--border);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 120px;
+}
+
+.file-label:hover {
+    border-color: var(--primary);
+    background: var(--bg-secondary);
+}
+
+.file-input:focus + .file-label {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.file-label i {
+    font-size: 32px;
+    color: var(--text-tertiary);
+}
+
+.file-label:hover i {
+    color: var(--primary);
+}
+
+.file-label span {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    text-align: center;
+    font-weight: 500;
+}
+
+.file-label.has-file {
+    border-color: var(--primary);
+    background: white;
+}
+
+.file-label.has-file i {
+    color: var(--primary);
+}
+
+.file-label.has-file span {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.upload-info {
+    margin-bottom: 1.5rem;
+}
+
+.upload-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.upload-actions .btn-primary {
+    min-width: 200px;
+}
+
+.upload-actions .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+    .custom-binary-upload {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Tab Navigation */
+.tab-navigation {
+    display: flex;
+    gap: 0;
+    padding: 0 2rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-light);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.tab-navigation::-webkit-scrollbar {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .tab-navigation {
+        padding: 0 1rem;
+        gap: 0;
+    }
+}
+
+.tab-btn {
+    padding: 1rem 1.75rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    white-space: nowrap;
+    position: relative;
+    border-radius: 0;
+}
+
+@media (max-width: 768px) {
+    .tab-btn {
+        padding: 0.875rem 1.25rem;
+        font-size: 0.875rem;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .tab-btn {
+        padding: 0.875rem 1rem;
+        font-size: 0.8125rem;
+    }
+    
+    .tab-btn span {
+        display: none;
+    }
+    
+    .tab-btn i {
+        font-size: 1.125rem;
+    }
+}
+
+.tab-btn i {
+    font-size: 1rem;
+    color: var(--text-tertiary);
+    transition: color 0.2s ease;
+}
+
+.tab-btn:hover {
+    color: var(--primary);
+    background: rgba(8, 145, 178, 0.04);
+}
+
+.tab-btn:hover i {
+    color: var(--primary);
+}
+
+.tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 600;
+    background: var(--bg-primary);
+}
+
+.tab-btn.active i {
+    color: var(--primary);
+}
+
+/* Tab Panels */
+.tab-panel {
+    display: none;
+    animation: fadeIn 0.25s ease;
+    min-height: 400px;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tab-panel > section:first-child {
+    margin-top: 0;
+    border-radius: 0;
 }

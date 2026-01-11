@@ -13,6 +13,7 @@ class ESPFlasher {
     async init() {
         this.setupDeviceSelector();
         this.setupChipFamilySelector();
+        this.setupBuildInstructions();
         await this.loadReleases();
         this.setupEventListeners();
     }
@@ -44,6 +45,16 @@ class ESPFlasher {
             this.updateDeviceDescription();
             this.updateChipFamilyDisplay();
             this.renderReleases(this.releases); // Re-render to update available files
+            
+            // Update build instructions with the PlatformIO target
+            const selectedDevice = this.config.deviceTargets?.find(t => t.id === this.selectedTarget);
+            console.log('Selected device:', selectedDevice);
+            if (selectedDevice && selectedDevice.platformioTarget) {
+                console.log('Updating build instructions to:', selectedDevice.platformioTarget);
+                this.updateBuildInstructions(selectedDevice.platformioTarget);
+            } else {
+                console.log('No platformioTarget found for device:', this.selectedTarget);
+            }
         });
     }
 
@@ -166,6 +177,179 @@ class ESPFlasher {
                     helpBlade.classList.remove('active');
                 });
             }
+        }
+
+        // Custom binary upload
+        this.setupCustomBinaryUpload();
+
+        // Tab navigation
+        this.setupTabs();
+    }
+
+    setupTabs() {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.getAttribute('data-tab');
+                
+                // Update active button
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Update active panel
+                tabPanels.forEach(panel => {
+                    panel.classList.remove('active');
+                    if (panel.id === `tab-${tabId}`) {
+                        panel.classList.add('active');
+                    }
+                });
+            });
+        });
+    }
+
+    setupCustomBinaryUpload() {
+        this.firmwareFile = null;
+        this.spiffsFile = null;
+
+        const firmwareInput = document.getElementById('firmwareFile');
+        const spiffsInput = document.getElementById('spiffsFile');
+        const flashCustomBtn = document.getElementById('flashCustomBtn');
+
+        if (firmwareInput) {
+            firmwareInput.addEventListener('change', (e) => {
+                this.handleFileSelect(e, 'firmware');
+            });
+        }
+
+        if (spiffsInput) {
+            spiffsInput.addEventListener('change', (e) => {
+                this.handleFileSelect(e, 'spiffs');
+            });
+        }
+
+        if (flashCustomBtn) {
+            flashCustomBtn.addEventListener('click', () => {
+                this.flashCustomBinary();
+            });
+        }
+    }
+
+    handleFileSelect(event, type) {
+        const file = event.target.files[0];
+        const fileNameSpan = document.getElementById(`${type}FileName`);
+        const fileLabel = event.target.nextElementSibling;
+        
+        if (file) {
+            if (type === 'firmware') {
+                this.firmwareFile = file;
+            } else {
+                this.spiffsFile = file;
+            }
+            
+            if (fileNameSpan) {
+                fileNameSpan.textContent = file.name;
+            }
+            
+            if (fileLabel) {
+                fileLabel.classList.add('has-file');
+            }
+        }
+
+        // Enable flash button if firmware is selected
+        const flashCustomBtn = document.getElementById('flashCustomBtn');
+        if (flashCustomBtn) {
+            flashCustomBtn.disabled = !this.firmwareFile;
+        }
+    }
+
+    async flashCustomBinary() {
+        if (!this.firmwareFile) {
+            alert('Please select a firmware file');
+            return;
+        }
+
+        const files = [];
+        
+        // Read firmware file
+        const firmwareData = await this.readFileAsArrayBuffer(this.firmwareFile);
+        files.push({
+            data: firmwareData,
+            address: 0x0
+        });
+
+        // Read SPIFFS file if provided
+        if (this.spiffsFile) {
+            const spiffsData = await this.readFileAsArrayBuffer(this.spiffsFile);
+            files.push({
+                data: spiffsData,
+                address: 0x290000
+            });
+        }
+
+        // Get chip family
+        const chipFamily = this.customChipFamily || this.getCurrentChipFamily();
+
+        // Create manifest for ESP Web Tools
+        const manifest = {
+            name: "Custom Firmware",
+            version: "custom",
+            home_assistant_domain: "esphome",
+            new_install_prompt_erase: true,
+            builds: [{
+                chipFamily: chipFamily,
+                parts: files.map(f => ({
+                    path: URL.createObjectURL(new Blob([f.data])),
+                    offset: f.address
+                }))
+            }]
+        };
+
+        this.showFlashDialog(manifest);
+    }
+
+    readFileAsArrayBuffer(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    updateBuildInstructions(target) {
+        const buildTargetName = document.getElementById('buildTargetName');
+        const buildTargetName2 = document.getElementById('buildTargetName2');
+        const buildTargetName3 = document.getElementById('buildTargetName3');
+        const buildTargetName4 = document.getElementById('buildTargetName4');
+        const buildTargetPath = document.getElementById('buildTargetPath');
+        const currentBuildTarget = document.getElementById('currentBuildTarget');
+        
+        if (buildTargetName) buildTargetName.textContent = target;
+        if (buildTargetName2) buildTargetName2.textContent = target;
+        if (buildTargetName3) buildTargetName3.textContent = target;
+        if (buildTargetName4) buildTargetName4.textContent = target;
+        if (buildTargetPath) buildTargetPath.textContent = target;
+        if (currentBuildTarget) currentBuildTarget.textContent = target;
+    }
+
+    setupBuildInstructions() {
+        const repoUrl = document.getElementById('repoUrl');
+        const repoName = document.getElementById('repoName');
+        
+        if (repoUrl && this.config.owner && this.config.repo) {
+            repoUrl.textContent = `https://github.com/${this.config.owner}/${this.config.repo}.git`;
+        }
+        
+        if (repoName && this.config.repo) {
+            repoName.textContent = this.config.repo;
+        }
+        
+        // Set initial build target from selected device
+        const selectedDevice = this.config.deviceTargets?.find(t => t.id === this.selectedTarget);
+        if (selectedDevice && selectedDevice.platformioTarget) {
+            this.updateBuildInstructions(selectedDevice.platformioTarget);
         }
     }
 
@@ -446,6 +630,29 @@ class ESPFlasher {
                 <p class="flash-dialog-description">
                     Connect your ESP device via USB and click the Connect button below to begin flashing.
                 </p>
+                <div class="flash-progress" id="flashProgress" style="display: none;">
+                    <div class="progress-header">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span id="progressMessage">Preparing...</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                    <div class="progress-details" id="progressDetails"></div>
+                </div>
+                <div class="flash-success" id="flashSuccess" style="display: none;">
+                    <div class="success-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3>Flash Complete!</h3>
+                    <p>Your device has been successfully flashed.</p>
+                    <div class="success-actions">
+                        <button id="openConsole" class="btn-secondary">
+                            <i class="fas fa-terminal"></i>
+                            View Console & Logs
+                        </button>
+                    </div>
+                </div>
                 <div class="flash-dialog-footer">
                     <div class="flash-dialog-button-container"></div>
                     <button id="cancelFlash" class="btn-secondary">
@@ -468,6 +675,11 @@ class ESPFlasher {
         dialog.querySelector('#closeDialog').addEventListener('click', closeDialog);
         dialog.querySelector('#cancelFlash').addEventListener('click', closeDialog);
         
+        // Console button
+        dialog.querySelector('#openConsole')?.addEventListener('click', () => {
+            installButton.openLogsDialog();
+        });
+        
         // Close on backdrop click
         dialog.addEventListener('click', (e) => {
             if (e.target === dialog) {
@@ -477,31 +689,93 @@ class ESPFlasher {
 
         // Listen for flash events
         installButton.addEventListener('state-changed', (e) => {
-            this.handleFlashState(e.detail);
+            this.handleFlashState(e.detail, dialog, installButton);
         });
     }
 
-    handleFlashState(state) {
-        const statusSection = document.getElementById('flashStatus');
-        const statusContent = document.getElementById('statusContent');
+    handleFlashState(state, dialog, installButton) {
+        const progressDiv = dialog.querySelector('#flashProgress');
+        const successDiv = dialog.querySelector('#flashSuccess');
+        const progressMessage = dialog.querySelector('#progressMessage');
+        const progressBar = dialog.querySelector('#progressBar');
+        const progressDetails = dialog.querySelector('#progressDetails');
+        const description = dialog.querySelector('.flash-dialog-description');
+        const footer = dialog.querySelector('.flash-dialog-footer');
+        const cancelBtn = dialog.querySelector('#cancelFlash');
         
-        statusSection.style.display = 'block';
+        console.log('Flash state:', state);
         
-        const message = document.createElement('div');
-        message.className = 'status-message';
+        // Map states to user-friendly messages
+        const stateMessages = {
+            'initializing': 'Connecting to device...',
+            'preparing': 'Preparing firmware files...',
+            'erasing': 'Erasing flash memory...',
+            'writing': 'Writing firmware to device...',
+            'manifest': 'Loading firmware manifest...',
+        };
         
         if (state.state === 'error') {
-            message.className += ' status-error';
-            message.textContent = `Error: ${state.message}`;
+            if (progressDiv) {
+                progressDiv.innerHTML = `
+                    <div class="progress-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <strong>Flash Failed</strong>
+                        <p>${state.message || 'An error occurred during flashing'}</p>
+                    </div>
+                `;
+            }
         } else if (state.state === 'installed') {
-            message.className += ' status-success';
-            message.textContent = '✓ Firmware flashed successfully!';
+            // Hide progress, show success
+            if (progressDiv) progressDiv.style.display = 'none';
+            if (successDiv) {
+                successDiv.style.display = 'block';
+                // Update console button to actually work
+                const consoleBtn = dialog.querySelector('#openConsole');
+                if (consoleBtn && installButton) {
+                    consoleBtn.onclick = () => {
+                        if (typeof installButton.openLogsDialog === 'function') {
+                            installButton.openLogsDialog();
+                        } else {
+                            console.log('Logs dialog not available');
+                        }
+                    };
+                }
+            }
+            if (cancelBtn) {
+                cancelBtn.textContent = 'Close';
+            }
         } else {
-            message.textContent = `${state.message || state.state}`;
+            // Show progress
+            if (description) description.style.display = 'none';
+            if (progressDiv) progressDiv.style.display = 'block';
+            if (footer) {
+                const buttonContainer = footer.querySelector('.flash-dialog-button-container');
+                if (buttonContainer) buttonContainer.style.display = 'none';
+            }
+            
+            // Update message
+            const message = stateMessages[state.state] || state.message || 'Processing...';
+            if (progressMessage) progressMessage.textContent = message;
+            
+            // Update progress bar if percentage available
+            if (state.percentage !== undefined && progressBar) {
+                progressBar.style.width = `${state.percentage}%`;
+            }
+            
+            // Add detailed status
+            if (progressDetails && state.details) {
+                progressDetails.textContent = state.details;
+            }
+            
+            // Custom messages for different parts being written
+            if (state.state === 'writing') {
+                if (state.details?.includes('0x0') || state.details?.includes('firmware')) {
+                    if (progressMessage) progressMessage.textContent = '📦 Writing firmware binary...';
+                } else if (state.details?.includes('0x290000') || state.details?.includes('spiffs')) {
+                    if (progressMessage) progressMessage.textContent = '💾 Writing filesystem (SPIFFS)...';
+                }
+            }
         }
-        
-        statusContent.appendChild(message);
-        statusContent.scrollTop = statusContent.scrollHeight;
     }
 
     openChangelogBlade(release, formattedDate) {

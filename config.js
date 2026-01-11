@@ -1,6 +1,7 @@
 // Configuration for ESPa Flasher
 // This flasher is part of the espa.diy project
 // Visit https://espa.diy for more information
+// Last updated: 2026-01-11
 
 const ESP_FLASHER_CONFIG = {
     // GitHub repository owner
@@ -21,19 +22,22 @@ const ESP_FLASHER_CONFIG = {
             id: 'esp32dev', 
             name: 'ESP32 Dev Board', 
             description: 'Generic ESP32 development board',
-            chipFamily: 'ESP32'
+            chipFamily: 'ESP32',
+            platformioTarget: 'esp32dev'
         },
         { 
             id: 'espa-v1', 
             name: 'eSpa v1', 
             description: 'eSpa Mini and eSpa Max v1.x based on the ESP32-S3 chip',
-            chipFamily: 'ESP32-S3'
+            chipFamily: 'ESP32-S3',
+            platformioTarget: 'espa-v1'
         },
         { 
             id: 'espa-v2', 
             name: 'eSpa v2', 
             description: 'eSpa Mini v2.x based on the ESP32-C6 chip',
-            chipFamily: 'ESP32-C6'
+            chipFamily: 'ESP32-C6',
+            platformioTarget: 'espa-v2'
         },
     ],
     

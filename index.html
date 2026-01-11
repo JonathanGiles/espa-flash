@@ -3,20 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>eSpa Flasher</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=20260111">
     <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
 </head>
 <body>
     <div class="container">
         <header>
             <div class="logo">
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="40" height="40" rx="8" fill="white" fill-opacity="0.15"/>
-                    <path d="M12 20L18 14L24 20L30 14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M12 26L18 20L24 26L30 20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <i class="fas fa-microchip logo-icon"></i>
                 <h1>eSpa Device Flasher</h1>
             </div>
             <p class="subtitle">Flash firmware to your eSpa device directly from your browser</p>
@@ -82,6 +81,24 @@
                 </div>
             </section>
 
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="releases">
+                    <i class="fas fa-cloud-download-alt"></i>
+                    <span>Flash Release</span>
+                </button>
+                <button class="tab-btn" data-tab="custom">
+                    <i class="fas fa-upload"></i>
+                    <span>Custom Binary</span>
+                </button>
+                <button class="tab-btn" data-tab="build">
+                    <i class="fas fa-hammer"></i>
+                    <span>Build Guide</span>
+                </button>
+            </div>
+
+            <!-- Tab Content: Releases -->
+            <div class="tab-panel active" id="tab-releases">
             <!-- Releases Section -->
             <section class="card releases">
                 <div class="section-header">
@@ -114,9 +131,7 @@
                 </div>
 
                 <div id="noReleases" class="empty-state" style="display: none;">
-                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                        <path d="M24 4L6 14V24C6 34 14 42 24 44C34 42 42 34 42 24V14L24 4Z" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+                    <i class="fas fa-inbox empty-icon"></i>
                     <h3>No releases found</h3>
                     <p>Check your configuration or try again later.</p>
                 </div>
@@ -129,46 +144,102 @@
                     <!-- Status updates will appear here -->
                 </div>
             </section>
+            </div>
 
+            <!-- Tab Content: Custom Binary -->
+            <div class="tab-panel" id="tab-custom">
+            <!-- Custom Binary Upload Section -->
+            <section class="card custom-binary-section">
+                <h2>
+                    <i class="fas fa-upload"></i>
+                    Flash Custom Binary
+                </h2>
+                <p class="build-explanation">
+                    Upload and flash locally-built firmware binaries directly from your computer.
+                </p>
+                
+                <div class="custom-binary-upload">
+                    <div class="upload-section">
+                        <h3>
+                            <i class="fas fa-file-code"></i>
+                            Firmware Binary
+                        </h3>
+                        <div class="file-upload-area">
+                            <input type="file" id="firmwareFile" accept=".bin" class="file-input">
+                            <label for="firmwareFile" class="file-label">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span id="firmwareFileName">Choose firmware.bin file</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="upload-section">
+                        <h3>
+                            <i class="fas fa-database"></i>
+                            SPIFFS Binary (Optional)
+                        </h3>
+                        <div class="file-upload-area">
+                            <input type="file" id="spiffsFile" accept=".bin" class="file-input">
+                            <label for="spiffsFile" class="file-label">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span id="spiffsFileName">Choose spiffs.bin file</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="upload-info">
+                    <div class="info-card">
+                        <i class="fas fa-info-circle"></i>
+                        <p>Firmware will be flashed to offset 0x0. SPIFFS (if provided) will be flashed to offset 0x290000. Make sure you select the correct chip family above before flashing.</p>
+                    </div>
+                </div>
+
+                <div class="upload-actions">
+                    <button id="flashCustomBtn" class="btn-primary" disabled>
+                        <i class="fas fa-bolt"></i>
+                        Flash Custom Binary
+                    </button>
+                </div>
+            </section>
+            </div>
+
+            <!-- Tab Content: Build Guide -->
+            <div class="tab-panel" id="tab-build">
             <!-- Build from Source Info -->
             <section class="card build-info">
                 <h2>Building from Source</h2>
                 <p class="build-explanation">
-                    Browser-based compilation of C++ firmware is not currently supported due to technical limitations.
-                    However, you can build firmware from the latest source code using these methods:
+                    Pre-built firmware binaries are available in the releases above. If you need to build custom firmware, 
+                    you can compile from source using PlatformIO:
                 </p>
                 <div class="build-methods">
                     <div class="build-method">
                         <h3>
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                <path d="M10 2L3 7V13C3 16 6 18 10 19C14 18 17 16 17 13V7L10 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            GitHub Actions (Recommended)
+                            <i class="fas fa-terminal"></i>
+                            PlatformIO Build for <span id="currentBuildTarget" class="build-target-badge">esp32dev</span>
                         </h3>
-                        <p>Visit <a href="https://espa.diy" target="_blank">espa.diy</a> for build instructions and to fork the repository.</p>
-                        <a href="https://github.com/${typeof ESP_FLASHER_CONFIG !== 'undefined' ? ESP_FLASHER_CONFIG.owner + '/' + ESP_FLASHER_CONFIG.repo : ''}/fork" target="_blank" class="btn-secondary btn-small">
-                            Fork on GitHub
-                        </a>
-                    </div>
-                    <div class="build-method">
-                        <h3>
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
-                                <path d="M7 10H13M10 7V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                            PlatformIO (Local)
-                        </h3>
-                        <p>Clone the repository and build locally with PlatformIO:</p>
-                        <code class="build-command">git clone https://github.com/${typeof ESP_FLASHER_CONFIG !== 'undefined' ? ESP_FLASHER_CONFIG.owner + '/' + ESP_FLASHER_CONFIG.repo : ''}.git<br>
-cd ${typeof ESP_FLASHER_CONFIG !== 'undefined' ? ESP_FLASHER_CONFIG.repo : ''}<br>
-pio run -e esp32dev</code>
+                        <p class="build-note"><i class="fas fa-info-circle"></i> Change the device target above to update these instructions</p>
+                        <p><strong>1. Clone and build firmware:</strong></p>
+                        <code class="build-command">git clone <span id="repoUrl"></span><br>
+cd <span id="repoName"></span><br>
+pio run -e <span id="buildTargetName">esp32dev</span></code>
+                        <p style="margin-top: 1rem;"><strong>2. Build SPIFFS filesystem:</strong></p>
+                        <code class="build-command">pio run -e <span id="buildTargetName2">esp32dev</span> -t buildfs</code>
+                        <p style="margin-top: 1rem;"><strong>3. Flash firmware and SPIFFS:</strong></p>
+                        <code class="build-command">pio run -e <span id="buildTargetName3">esp32dev</span> -t upload<br>
+pio run -e <span id="buildTargetName4">esp32dev</span> -t uploadfs</code>
+                        <p style="margin-top: 0.75rem; font-size: 0.875rem; color: var(--text-secondary);">
+                            <i class="fas fa-info-circle"></i> The binaries will be located in <code>.pio/build/<span id="buildTargetPath">esp32dev</span>/firmware.bin</code> and <code>spiffs.bin</code>. You can flash them using the "Flash Custom Binary" tab.
+                        </p>
                     </div>
                 </div>
             </section>
+            </div>
         </main>
 
         <footer>
-            <p>Part of the <a href="https://espa.diy" target="_blank" class="espa-link"><strong>espa.diy</strong></a> project</p>
+            <p>Part of the <a href="https://espa.diy" target="_blank" class="espa-link"><strong>espa.diy</strong></a> project | <a href="https://espa.diy" target="_blank" class="espa-link">Documentation</a></p>
         </footer>
     </div>
 
@@ -253,24 +324,15 @@ pio run -e esp32dev</code>
                     <p>This tool requires WebSerial API support. Compatible browsers include:</p>
                     <ul class="browser-list">
                         <li>
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                <circle cx="10" cy="10" r="8" stroke="#0891B2" stroke-width="2"/>
-                                <path d="M6 10l2 2 6-6" stroke="#0891B2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
+                            <i class="fas fa-check-circle"></i>
                             Google Chrome (Desktop)
                         </li>
                         <li>
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                <circle cx="10" cy="10" r="8" stroke="#0891B2" stroke-width="2"/>
-                                <path d="M6 10l2 2 6-6" stroke="#0891B2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
+                            <i class="fas fa-check-circle"></i>
                             Microsoft Edge (Desktop)
                         </li>
                         <li>
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                <circle cx="10" cy="10" r="8" stroke="#0891B2" stroke-width="2"/>
-                                <path d="M6 10l2 2 6-6" stroke="#0891B2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
+                            <i class="fas fa-check-circle"></i>
                             Opera (Desktop)
                         </li>
                     </ul>
@@ -296,7 +358,7 @@ pio run -e esp32dev</code>
         </div>
     </div>
 
-    <script src="config.js"></script>
-    <script src="app.js"></script>
+    <script src="config.js?v=20260111"></script>
+    <script src="app.js?v=20260111"></script>
 </body>
 </html>
