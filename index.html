@@ -27,50 +27,39 @@
                 <h2>Select Your Device</h2>
                 
                 <div class="device-selector">
-                    <div class="selector-primary">
-                        <div class="selector-item">
-                            <label for="deviceTarget">
-                                <i class="fas fa-microchip"></i>
-                                Device Target
-                            </label>
-                            <select id="deviceTarget" class="device-select">
+                    <div class="selector-item">
+                        <label for="deviceTarget">
+                            <i class="fas fa-microchip"></i>
+                            Device Target
+                        </label>
+                        <div class="custom-select" id="deviceTargetSelect">
+                            <button type="button" class="custom-select-trigger" id="deviceTargetTrigger">
+                                <div class="custom-select-value">
+                                    <div class="select-title">Select Device</div>
+                                    <div class="select-description">Choose your device target</div>
+                                </div>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="custom-select-dropdown" id="deviceTargetDropdown">
                                 <!-- Options populated by JavaScript -->
-                            </select>
-                        </div>
-                        
-                        <div class="selector-item">
-                            <label>
-                                <i class="fas fa-memory"></i>
-                                Chip Family
-                            </label>
-                            <div class="chip-controls">
-                                <span id="chipFamilyDisplay" class="chip-badge">ESP32</span>
-                                <button id="toggleCustomChip" class="btn-link">
-                                    <i class="fas fa-sliders-h"></i>
-                                    Override
-                                </button>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="selector-info">
-                        <div class="info-card">
-                            <i class="fas fa-info-circle"></i>
-                            <p id="deviceDescription">Select a device target to see available firmware</p>
-                        </div>
-                    </div>
-                    
-                    <div class="custom-chip-selector" id="customChipSelector" style="display: none;">
-                        <div class="override-warning">
-                            <i class="fas fa-exclamation-triangle"></i>
+
+                    <div id="chipFamilySection" class="chip-family-section" style="display: none;">
+                        <div class="chip-family-required">
+                            <i class="fas fa-exclamation-circle"></i>
                             <div>
-                                <strong>Hardware Override</strong>
-                                <p>Only change this if you're using custom hardware</p>
+                                <strong>Chip Family Selection Required</strong>
+                                <p>Generic board requires selecting your specific ESP32 chip variant</p>
                             </div>
                         </div>
-                        <label for="customChipFamily">Custom Chip Family</label>
-                        <select id="customChipFamily" class="device-select">
-                            <option value="ESP32">ESP32</option>
+                        <label for="chipFamilySelect">
+                            <i class="fas fa-memory"></i>
+                            Select Chip Family
+                        </label>
+                        <select id="chipFamilySelect" class="device-select chip-family-select">
+                            <option value="ESP32">ESP32 (Original)</option>
                             <option value="ESP32-S2">ESP32-S2</option>
                             <option value="ESP32-S3">ESP32-S3</option>
                             <option value="ESP32-C3">ESP32-C3</option>
@@ -209,7 +198,7 @@
                     <div class="build-method">
                         <h3>
                             <i class="fas fa-terminal"></i>
-                            PlatformIO Build for <span id="currentBuildTarget" class="build-target-badge">esp32dev</span>
+                            PlatformIO Build for <code id="currentBuildTarget" class="build-target-badge">esp32dev</code>
                         </h3>
                         <p class="build-note"><i class="fas fa-info-circle"></i> Change the device target above to update these instructions</p>
                         <p><strong>1. Clone and build firmware:</strong></p>
@@ -218,11 +207,12 @@ cd <span id="repoName"></span><br>
 pio run -e <span id="buildTargetName">esp32dev</span></code>
                         <p style="margin-top: 1rem;"><strong>2. Build SPIFFS filesystem:</strong></p>
                         <code class="build-command">pio run -e <span id="buildTargetName2">esp32dev</span> -t buildfs</code>
-                        <p style="margin-top: 1rem;"><strong>3. Flash firmware and SPIFFS:</strong></p>
+                        <p style="margin-top: 1rem;"><strong>3. Flash using PlatformIO:</strong></p>
                         <code class="build-command">pio run -e <span id="buildTargetName3">esp32dev</span> -t upload<br>
 pio run -e <span id="buildTargetName4">esp32dev</span> -t uploadfs</code>
-                        <p style="margin-top: 0.75rem; font-size: 0.875rem; color: var(--text-secondary);">
-                            <i class="fas fa-info-circle"></i> The binaries will be located in <code>.pio/build/<span id="buildTargetPath">esp32dev</span>/firmware.bin</code> and <code>spiffs.bin</code>. You can flash them using the "Flash Custom Binary" tab.
+                        <p style="margin-top: 1rem;"><strong>Alternative: Flash using this website:</strong></p>
+                        <p style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);">
+                            <i class="fas fa-globe"></i> The binaries will be located in <code>.pio/build/<span id="buildTargetPath">esp32dev</span>/firmware.bin</code> and <code>spiffs.bin</code>. You can upload and flash them using the <strong>"Flash Custom Binary"</strong> tab above.
                         </p>
                     </div>
                 </div>
@@ -231,7 +221,7 @@ pio run -e <span id="buildTargetName4">esp32dev</span> -t uploadfs</code>
         </main>
 
         <footer>
-            <p>Part of the <a href="https://espa.diy" target="_blank" class="espa-link"><strong>espa.diy</strong></a> project | <a href="https://espa.diy" target="_blank" class="espa-link">Documentation</a></p>
+            <p>Part of the <a href="https://espa.diy" target="_blank" class="espa-link"><strong>espa.diy</strong></a> project</p>
         </footer>
     </div>
 

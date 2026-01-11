@@ -19,67 +19,107 @@ class ESPFlasher {
     }
 
     setupDeviceSelector() {
-        const selectEl = document.getElementById('deviceTarget');
-        const descriptionEl = document.getElementById('deviceDescription');
+        const selectContainer = document.getElementById('deviceTargetSelect');
+        const trigger = document.getElementById('deviceTargetTrigger');
+        const dropdown = document.getElementById('deviceTargetDropdown');
         
-        if (!selectEl || !this.config.deviceTargets) return;
+        if (!selectContainer || !trigger || !dropdown || !this.config.deviceTargets) return;
         
-        // Populate device options
-        this.config.deviceTargets.forEach(target => {
-            const option = document.createElement('option');
-            option.value = target.id;
-            option.textContent = target.name;
-            if (target.id === this.selectedTarget) {
-                option.selected = true;
-            }
-            selectEl.appendChild(option);
-        });
-        
-        // Update description and chip family
-        this.updateDeviceDescription();
-        this.updateChipFamilyDisplay();
-        
-        // Listen for changes
-        selectEl.addEventListener('change', (e) => {
-            this.selectedTarget = e.target.value;
-            this.updateDeviceDescription();
-            this.updateChipFamilyDisplay();
-            this.renderReleases(this.releases); // Re-render to update available files
+        // Populate custom dropdown options
+        this.config.deviceTargets.forEach((target, index) => {
+            const option = document.createElement('div');
+            option.className = 'custom-select-option';
+            option.dataset.value = target.id;
             
-            // Update build instructions with the PlatformIO target
-            const selectedDevice = this.config.deviceTargets?.find(t => t.id === this.selectedTarget);
-            if (selectedDevice && selectedDevice.platformioTarget) {
-                this.updateBuildInstructions(selectedDevice.platformioTarget);
+            const title = document.createElement('div');
+            title.className = 'option-title';
+            title.textContent = target.name;
+            
+            const description = document.createElement('div');
+            description.className = 'option-description';
+            description.textContent = target.description || '';
+            
+            option.appendChild(title);
+            if (target.description) {
+                option.appendChild(description);
+            }
+            
+            if (target.id === this.selectedTarget) {
+                option.classList.add('selected');
+                this.updateTriggerDisplay(target);
+            }
+            
+            option.addEventListener('click', () => {
+                this.selectDevice(target);
+                selectContainer.classList.remove('active');
+            });
+            
+            dropdown.appendChild(option);
+        });
+        
+        // Toggle dropdown
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectContainer.classList.toggle('active');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!selectContainer.contains(e.target)) {
+                selectContainer.classList.remove('active');
             }
         });
+        
+        this.updateChipFamilyVisibility();
+    }
+    
+    updateTriggerDisplay(target) {
+        const trigger = document.getElementById('deviceTargetTrigger');
+        if (!trigger) return;
+        
+        const titleEl = trigger.querySelector('.select-title');
+        const descEl = trigger.querySelector('.select-description');
+        
+        if (titleEl) titleEl.textContent = target.name;
+        if (descEl) descEl.textContent = target.description || '';
+    }
+    
+    selectDevice(target) {
+        this.selectedTarget = target.id;
+        
+        // Update selected state in dropdown
+        const dropdown = document.getElementById('deviceTargetDropdown');
+        if (dropdown) {
+            dropdown.querySelectorAll('.custom-select-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.dataset.value === target.id) {
+                    opt.classList.add('selected');
+                }
+            });
+        }
+        
+        // Update trigger display
+        this.updateTriggerDisplay(target);
+        
+        // Update other parts of the UI
+        this.updateChipFamilyVisibility();
+        this.renderReleases(this.releases);
+        
+        // Update build instructions
+        const selectedDevice = this.config.deviceTargets?.find(t => t.id === this.selectedTarget);
+        if (selectedDevice && selectedDevice.platformioTarget) {
+            this.updateBuildInstructions(selectedDevice.platformioTarget);
+        }
     }
 
     setupChipFamilySelector() {
-        const toggleBtn = document.getElementById('toggleCustomChip');
-        const customSelector = document.getElementById('customChipSelector');
-        const customChipSelect = document.getElementById('customChipFamily');
+        const chipFamilySelect = document.getElementById('chipFamilySelect');
         
-        if (!toggleBtn || !customSelector || !customChipSelect) return;
+        if (!chipFamilySelect) return;
         
-        // Toggle custom chip family selector
-        toggleBtn.addEventListener('click', () => {
-            const isVisible = customSelector.style.display !== 'none';
-            customSelector.style.display = isVisible ? 'none' : 'block';
-            toggleBtn.innerHTML = isVisible 
-                ? '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="margin-right: 0.25rem;"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Override Chip Family'
-                : '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="margin-right: 0.25rem;"><path d="M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Hide Override';
-            
-            if (isVisible) {
-                // Reset to target's chip family
-                this.customChipFamily = null;
-                this.updateChipFamilyDisplay();
-            }
-        });
-        
-        // Listen for custom chip family changes
-        customChipSelect.addEventListener('change', (e) => {
+        // Listen for chip family changes
+        chipFamilySelect.addEventListener('change', (e) => {
             this.customChipFamily = e.target.value;
-            this.updateChipFamilyDisplay();
         });
     }
 
@@ -93,49 +133,26 @@ class ESPFlasher {
         return target?.chipFamily || this.config.chipFamily || 'ESP32';
     }
 
-    updateChipFamilyDisplay() {
-        const chipBadge = document.getElementById('chipFamilyDisplay');
-        const customChipBtn = document.getElementById('toggleCustomChip');
-        const customSelector = document.getElementById('customChipSelector');
+    updateChipFamilyVisibility() {
+        const chipFamilySection = document.getElementById('chipFamilySection');
+        const chipFamilySelect = document.getElementById('chipFamilySelect');
         
-        if (!chipBadge) return;
+        if (!chipFamilySection) return;
         
-        const chipFamily = this.getCurrentChipFamily();
-        const target = this.config.deviceTargets?.find(t => t.id === this.selectedTarget);
-        const isHardwareLocked = target && target.chipFamily && this.selectedTarget !== 'esp32dev';
+        // Only show chip family selection for generic esp32dev board
+        const isGenericBoard = this.selectedTarget === 'esp32dev';
+        chipFamilySection.style.display = isGenericBoard ? 'flex' : 'none';
         
-        chipBadge.textContent = chipFamily;
-        
-        // Update badge color and style
-        if (this.customChipFamily) {
-            chipBadge.style.background = 'var(--warning)';
-        } else if (isHardwareLocked) {
-            chipBadge.style.background = 'var(--text-tertiary)';
-        } else {
-            chipBadge.style.background = 'var(--primary)';
-        }
-        
-        // Show/hide custom chip selector based on hardware
-        if (customChipBtn && customSelector) {
-            if (isHardwareLocked) {
-                // Hide custom option for specific hardware
-                customChipBtn.style.display = 'none';
-                customSelector.style.display = 'none';
-                this.customChipFamily = null;
+        if (isGenericBoard) {
+            // Set chip family from select or use default
+            if (chipFamilySelect && chipFamilySelect.value) {
+                this.customChipFamily = chipFamilySelect.value;
             } else {
-                // Show custom option for generic hardware
-                customChipBtn.style.display = 'inline-flex';
+                this.customChipFamily = 'ESP32';
             }
-        }
-    }
-
-    updateDeviceDescription() {
-        const descriptionEl = document.getElementById('deviceDescription');
-        if (!descriptionEl || !this.config.deviceTargets) return;
-        
-        const target = this.config.deviceTargets.find(t => t.id === this.selectedTarget);
-        if (target && target.description) {
-            descriptionEl.textContent = target.description;
+        } else {
+            // For specific hardware, use the device's chip family
+            this.customChipFamily = null;
         }
     }
 
