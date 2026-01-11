@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eSpa Flasher</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="40" height="40" rx="8" fill="white" fill-opacity="0.15"/>
+                    <path d="M12 20L18 14L24 20L30 14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 26L18 20L24 26L30 20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h1>eSpa Device Flasher</h1>
+            </div>
+            <p class="subtitle">Flash firmware to your eSpa device directly from your browser</p>
+        </header>
+
+        <main>
+            <!-- Device Configuration -->
+            <section class="card device-config">
+                <h2>Select Your Device</h2>
+                
+                <div class="device-selector">
+                    <div class="selector-primary">
+                        <div class="selector-item">
+                            <label for="deviceTarget">
+                                <i class="fas fa-microchip"></i>
+                                Device Target
+                            </label>
+                            <select id="deviceTarget" class="device-select">
+                                <!-- Options populated by JavaScript -->
+                            </select>
+                        </div>
+                        
+                        <div class="selector-item">
+                            <label>
+                                <i class="fas fa-memory"></i>
+                                Chip Family
+                            </label>
+                            <div class="chip-controls">
+                                <span id="chipFamilyDisplay" class="chip-badge">ESP32</span>
+                                <button id="toggleCustomChip" class="btn-link">
+                                    <i class="fas fa-sliders-h"></i>
+                                    Override
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="selector-info">
+                        <div class="info-card">
+                            <i class="fas fa-info-circle"></i>
+                            <p id="deviceDescription">Select a device target to see available firmware</p>
+                        </div>
+                    </div>
+                    
+                    <div class="custom-chip-selector" id="customChipSelector" style="display: none;">
+                        <div class="override-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <strong>Hardware Override</strong>
+                                <p>Only change this if you're using custom hardware</p>
+                            </div>
+                        </div>
+                        <label for="customChipFamily">Custom Chip Family</label>
+                        <select id="customChipFamily" class="device-select">
+                            <option value="ESP32">ESP32</option>
+                            <option value="ESP32-S2">ESP32-S2</option>
+                            <option value="ESP32-S3">ESP32-S3</option>
+                            <option value="ESP32-C3">ESP32-C3</option>
+                            <option value="ESP32-C6">ESP32-C6</option>
+                            <option value="ESP32-H2">ESP32-H2</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Releases Section -->
+            <section class="card releases">
+                <div class="section-header">
+                    <h2>Available Releases</h2>
+                    <div class="section-actions">
+                        <button id="helpBtn" class="btn-icon" title="How to flash firmware">
+                            <i class="fas fa-question-circle"></i>
+                        </button>
+                        <button id="refreshBtn" class="btn-secondary">
+                            <i class="fas fa-sync-alt"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="loadingReleases" class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading releases...</p>
+                </div>
+
+                <div id="releasesContainer" class="releases-grid">
+                    <!-- Releases will be dynamically inserted here -->
+                </div>
+
+                <div id="loadMoreContainer" class="load-more-container" style="display: none;">
+                    <button id="loadMoreBtn" class="btn-secondary">
+                        <i class="fas fa-chevron-down"></i>
+                        Load More Releases
+                    </button>
+                </div>
+
+                <div id="noReleases" class="empty-state" style="display: none;">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                        <path d="M24 4L6 14V24C6 34 14 42 24 44C34 42 42 34 42 24V14L24 4Z" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h3>No releases found</h3>
+                    <p>Check your configuration or try again later.</p>
+                </div>
+            </section>
+
+            <!-- Flash Status Section -->
+            <section id="flashStatus" class="card flash-status" style="display: none;">
+                <h2>Flash Status</h2>
+                <div id="statusContent">
+                    <!-- Status updates will appear here -->
+                </div>
+            </section>
+
+            <!-- Build from Source Info -->
+            <section class="card build-info">
+                <h2>Building from Source</h2>
+                <p class="build-explanation">
+                    Browser-based compilation of C++ firmware is not currently supported due to technical limitations.
+                    However, you can build firmware from the latest source code using these methods:
+                </p>
+                <div class="build-methods">
+                    <div class="build-method">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M10 2L3 7V13C3 16 6 18 10 19C14 18 17 16 17 13V7L10 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            GitHub Actions (Recommended)
+                        </h3>
+                        <p>Visit <a href="https://espa.diy" target="_blank">espa.diy</a> for build instructions and to fork the repository.</p>
+                        <a href="https://github.com/${typeof ESP_FLASHER_CONFIG !== 'undefined' ? ESP_FLASHER_CONFIG.owner + '/' + ESP_FLASHER_CONFIG.repo : ''}/fork" target="_blank" class="btn-secondary btn-small">
+                            Fork on GitHub
+                        </a>
+                    </div>
+                    <div class="build-method">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                                <path d="M7 10H13M10 7V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            PlatformIO (Local)
+                        </h3>
+                        <p>Clone the repository and build locally with PlatformIO:</p>
+                        <code class="build-command">git clone https://github.com/${typeof ESP_FLASHER_CONFIG !== 'undefined' ? ESP_FLASHER_CONFIG.owner + '/' + ESP_FLASHER_CONFIG.repo : ''}.git<br>
+cd ${typeof ESP_FLASHER_CONFIG !== 'undefined' ? ESP_FLASHER_CONFIG.repo : ''}<br>
+pio run -e esp32dev</code>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Part of the <a href="https://espa.diy" target="_blank" class="espa-link"><strong>espa.diy</strong></a> project</p>
+        </footer>
+    </div>
+
+    <!-- Changelog Blade -->
+    <div id="changelogBlade" class="changelog-blade">
+        <div class="blade-overlay"></div>
+        <div class="blade-panel">
+            <div class="blade-header">
+                <div class="blade-title-section">
+                    <h3 id="bladeReleaseTitle">Release Details</h3>
+                    <div class="blade-meta">
+                        <span id="bladeReleaseTag" class="blade-tag"></span>
+                        <span id="bladeReleaseDate" class="blade-date"></span>
+                    </div>
+                </div>
+                <button id="closeBlade" class="blade-close" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="blade-content">
+                <div id="bladeChangelog" class="blade-changelog"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Blade -->
+    <div id="helpBlade" class="changelog-blade help-blade">
+        <div class="blade-overlay"></div>
+        <div class="blade-panel">
+            <div class="blade-header">
+                <div class="blade-title-section">
+                    <h3>How to Flash Firmware</h3>
+                </div>
+                <button id="closeHelpBlade" class="blade-close" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="blade-content">
+                <div class="help-section">
+                    <h4>Quick Start Guide</h4>
+                    <ol class="help-steps">
+                        <li>
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <strong>Select Your Device</strong>
+                                <p>Choose your device target from the dropdown menu. The chip family will be set automatically based on the hardware specification.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <strong>Connect via USB</strong>
+                                <p>Connect your ESP device to your computer using a USB cable. Make sure the cable supports data transfer (not just charging).</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <strong>Choose Firmware</strong>
+                                <p>Browse the available releases and click "Flash" on the version you want to install.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <strong>Select Serial Port</strong>
+                                <p>Click "Connect" and select your device's serial port from the browser dialog. It usually appears as "USB Serial" or similar.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="step-number">5</div>
+                            <div class="step-content">
+                                <strong>Wait for Completion</strong>
+                                <p>The flashing process will take 1-2 minutes. Don't disconnect your device until it's complete.</p>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+                
+                <div class="help-section">
+                    <h4>Browser Support</h4>
+                    <p>This tool requires WebSerial API support. Compatible browsers include:</p>
+                    <ul class="browser-list">
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="8" stroke="#0891B2" stroke-width="2"/>
+                                <path d="M6 10l2 2 6-6" stroke="#0891B2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Google Chrome (Desktop)
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="8" stroke="#0891B2" stroke-width="2"/>
+                                <path d="M6 10l2 2 6-6" stroke="#0891B2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Microsoft Edge (Desktop)
+                        </li>
+                        <li>
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="8" stroke="#0891B2" stroke-width="2"/>
+                                <path d="M6 10l2 2 6-6" stroke="#0891B2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Opera (Desktop)
+                        </li>
+                    </ul>
+                    <p class="help-note"><strong>Note:</strong> Mobile browsers and Firefox do not currently support WebSerial.</p>
+                </div>
+                
+                <div class="help-section">
+                    <h4>Troubleshooting</h4>
+                    <div class="troubleshooting-item">
+                        <strong>Device not detected?</strong>
+                        <p>Try a different USB cable or port. Some cables are charge-only and don't support data transfer.</p>
+                    </div>
+                    <div class="troubleshooting-item">
+                        <strong>Flashing failed?</strong>
+                        <p>Make sure you selected the correct device target. Press and hold the BOOT button on your device, then try again.</p>
+                    </div>
+                    <div class="troubleshooting-item">
+                        <strong>Need more help?</strong>
+                        <p>Visit <a href="https://espa.diy" target="_blank">espa.diy</a> for documentation and community support.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
