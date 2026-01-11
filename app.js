@@ -48,12 +48,8 @@ class ESPFlasher {
             
             // Update build instructions with the PlatformIO target
             const selectedDevice = this.config.deviceTargets?.find(t => t.id === this.selectedTarget);
-            console.log('Selected device:', selectedDevice);
             if (selectedDevice && selectedDevice.platformioTarget) {
-                console.log('Updating build instructions to:', selectedDevice.platformioTarget);
                 this.updateBuildInstructions(selectedDevice.platformioTarget);
-            } else {
-                console.log('No platformioTarget found for device:', this.selectedTarget);
             }
         });
     }
@@ -703,8 +699,6 @@ class ESPFlasher {
         const footer = dialog.querySelector('.flash-dialog-footer');
         const cancelBtn = dialog.querySelector('#cancelFlash');
         
-        console.log('Flash state:', state);
-        
         // Map states to user-friendly messages
         const stateMessages = {
             'initializing': 'Connecting to device...',
@@ -735,8 +729,6 @@ class ESPFlasher {
                     consoleBtn.onclick = () => {
                         if (typeof installButton.openLogsDialog === 'function') {
                             installButton.openLogsDialog();
-                        } else {
-                            console.log('Logs dialog not available');
                         }
                     };
                 }

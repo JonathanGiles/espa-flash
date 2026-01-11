@@ -921,35 +921,6 @@ button {
     max-width: 400px;
 }
 
-/* Flash Status */
-.flash-status {
-    background: #FEF3C7;
-    border-color: var(--warning);
-}
-
-#statusContent {
-    font-family: 'Courier New', monospace;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-}
-
-.status-message {
-    padding: 0.5rem;
-    margin-bottom: 0.5rem;
-    background: white;
-    border-radius: 0.25rem;
-}
-
-.status-success {
-    color: var(--secondary);
-    font-weight: 600;
-}
-
-.status-error {
-    color: var(--danger);
-    font-weight: 600;
-}
-
 /* ESP Web Tools Button Customization */
 esp-web-install-button {
     --esp-tools-button-color: var(--primary);
@@ -1028,32 +999,7 @@ esp-web-install-button {
     flex-shrink: 0;
 }
 
-.build-target-selector {
-    margin-bottom: 1rem;
-    padding: 1rem;
-    background: var(--bg-secondary);
-    border-radius: 0.5rem;
-    border: 1px solid var(--border);
-}
 
-.build-target-selector label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 0.5rem;
-}
-
-.build-target-selector label i {
-    color: var(--primary);
-    font-size: 16px;
-}
-
-.build-target-selector .device-select {
-    width: 100%;
-}
 
 .build-method p {
     font-size: 0.875rem;
@@ -1796,22 +1742,7 @@ footer .espa-link {
     min-width: 200px;
 }
 
-/* Manifest Modal (for ESP Web Tools) - Legacy support */
-dialog:not(.flash-dialog):not(.changelog-blade) {
-    border: none;
-    border-radius: 0.75rem;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    padding: 0;
-    max-width: 90vw;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
 
-dialog:not(.flash-dialog):not(.changelog-blade)::backdrop {
-    background: rgba(0, 0, 0, 0.5);
-}
 
 /* Help Blade */
 .help-blade .blade-panel {
