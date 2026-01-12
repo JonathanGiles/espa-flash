@@ -571,21 +571,26 @@ class ESPFlasher {
     }
 
     async createAndFlashManifest(release, firmware, spiffs) {
-        // Build parts array
+        // Build parts array with proxied URLs to bypass CORS
         const parts = [];
+        
+        // Get the base URL for absolute paths
+        const baseUrl = window.location.origin;
         
         // Add firmware (typically at 0x10000 for factory builds)
         if (firmware) {
+            const proxiedUrl = `${baseUrl}/proxy?url=${encodeURIComponent(firmware.browser_download_url)}`;
             parts.push({
-                path: firmware.browser_download_url,
+                path: proxiedUrl,
                 offset: firmware.name.includes('factory') ? 0x0 : 0x10000
             });
         }
         
         // Add filesystem if available (typically at 0x290000)
         if (spiffs) {
+            const proxiedUrl = `${baseUrl}/proxy?url=${encodeURIComponent(spiffs.browser_download_url)}`;
             parts.push({
-                path: spiffs.browser_download_url,
+                path: proxiedUrl,
                 offset: 0x290000
             });
         }
@@ -611,15 +616,25 @@ class ESPFlasher {
     }
 
     showFlashDialog(manifest) {
-        // Create and show ESP Web Tools install button
+        // Store manifest for potential access
+        this.currentManifest = manifest;
+        
+        // Create ESP Web Tools install button
         const installButton = document.createElement('esp-web-install-button');
-        installButton.manifest = JSON.stringify(manifest);
+        
+        // Set manifest as a data URL that ESP Web Tools can fetch
+        const manifestJson = JSON.stringify(manifest);
+        const dataUrl = 'data:application/json;charset=utf-8,' + encodeURIComponent(manifestJson);
+        installButton.manifest = dataUrl;
+        
+        // Always erase first (no prompt)
+        installButton.setAttribute('erase-first', 'true');
         
         // Create custom button for the activate slot
         const customButton = document.createElement('button');
         customButton.setAttribute('slot', 'activate');
         customButton.className = 'btn-primary';
-        customButton.textContent = 'Connect';
+        customButton.innerHTML = '<i class="fas fa-bolt"></i> Connect & Flash';
         installButton.appendChild(customButton);
         
         // Create a temporary dialog
@@ -634,14 +649,35 @@ class ESPFlasher {
                         </svg>
                     </div>
                     <h2>Flash Firmware</h2>
-                    <button class="flash-dialog-close" id="closeDialog" aria-label="Close">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                    </button>
+                    <div class="flash-dialog-header-actions">
+                        <button class="btn-icon" id="viewLogsBtn" title="View console logs" style="display: none;">
+                            <i class="fas fa-terminal"></i>
+                        </button>
+                        <button class="flash-dialog-close" id="closeDialog" aria-label="Close">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="chip-info-section" id="chipInfoSection" style="display: none;">
+                    <div class="chip-info-grid">
+                        <div class="chip-info-item">
+                            <span class="chip-info-label">Chip:</span>
+                            <span class="chip-info-value" id="chipType">-</span>
+                        </div>
+                        <div class="chip-info-item">
+                            <span class="chip-info-label">MAC Address:</span>
+                            <span class="chip-info-value" id="chipMac">-</span>
+                        </div>
+                        <div class="chip-info-item">
+                            <span class="chip-info-label">Flash Size:</span>
+                            <span class="chip-info-value" id="chipFlash">-</span>
+                        </div>
+                    </div>
                 </div>
                 <p class="flash-dialog-description">
-                    Connect your ESP device via USB and click the Connect button below to begin flashing.
+                    Connect your ESP device via USB and click the button below to begin flashing.
                 </p>
                 <div class="flash-progress" id="flashProgress" style="display: none;">
                     <div class="progress-header">
@@ -658,16 +694,20 @@ class ESPFlasher {
                         <i class="fas fa-check-circle"></i>
                     </div>
                     <h3>Flash Complete!</h3>
-                    <p>Your device has been successfully flashed.</p>
+                    <p>Your device has been successfully flashed and is ready to use.</p>
                     <div class="success-actions">
-                        <button id="openConsole" class="btn-secondary">
+                        <button id="openConsole" class="btn-primary">
                             <i class="fas fa-terminal"></i>
                             View Console & Logs
+                        </button>
+                        <button id="restartDevice" class="btn-secondary">
+                            <i class="fas fa-redo"></i>
+                            Restart Device
                         </button>
                     </div>
                 </div>
                 <div class="flash-dialog-footer">
-                    <div class="flash-dialog-button-container"></div>
+                    <div id="flashButtonContainer"></div>
                     <button id="cancelFlash" class="btn-secondary">
                         Cancel
                     </button>
@@ -675,7 +715,9 @@ class ESPFlasher {
             </div>
         `;
         
-        dialog.querySelector('.flash-dialog-button-container').appendChild(installButton);
+        // Add button to our modal
+        const buttonContainer = dialog.querySelector('#flashButtonContainer');
+        buttonContainer.appendChild(installButton);
         document.body.appendChild(dialog);
         
         dialog.showModal();
@@ -688,9 +730,67 @@ class ESPFlasher {
         dialog.querySelector('#closeDialog').addEventListener('click', closeDialog);
         dialog.querySelector('#cancelFlash').addEventListener('click', closeDialog);
         
-        // Console button
+        // Hide our modal when ESP Web Tools dialog opens
+        const observer = new MutationObserver(() => {
+            const espDialog = document.querySelector('ewt-install-dialog');
+            if (espDialog) {
+                dialog.style.display = 'none';
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+        
+        // Show our modal again if ESP dialog closes without installing
+        installButton.addEventListener('state-changed', (e) => {
+            if (e.detail.state === 'error' || e.detail.state === 'installed') {
+                const espDialog = document.querySelector('ewt-install-dialog');
+                if (!espDialog) {
+                    dialog.style.display = 'block';
+                }
+            }
+        });
+        
+        // View logs button in header
+        const viewLogsBtn = dialog.querySelector('#viewLogsBtn');
+        if (viewLogsBtn) {
+            viewLogsBtn.addEventListener('click', () => {
+                if (installButton && typeof installButton.openLogsDialog === 'function') {
+                    installButton.openLogsDialog();
+                }
+            });
+        }
+        
+        // Console button in success screen
         dialog.querySelector('#openConsole')?.addEventListener('click', () => {
-            installButton.openLogsDialog();
+            if (installButton && typeof installButton.openLogsDialog === 'function') {
+                installButton.openLogsDialog();
+            }
+        });
+        
+        // Restart device button
+        dialog.querySelector('#restartDevice')?.addEventListener('click', async () => {
+            try {
+                const restartBtn = dialog.querySelector('#restartDevice');
+                if (restartBtn) {
+                    restartBtn.disabled = true;
+                    restartBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Restarting...';
+                }
+                
+                // Access the port from ESP Web Tools
+                if (installButton.port) {
+                    await installButton.port.reset();
+                    setTimeout(() => {
+                        if (restartBtn) {
+                            restartBtn.innerHTML = '<i class="fas fa-check"></i> Restarted';
+                        }
+                    }, 1000);
+                }
+            } catch (err) {
+                console.error('Failed to restart device:', err);
+                const restartBtn = dialog.querySelector('#restartDevice');
+                if (restartBtn) {
+                    restartBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Restart Failed';
+                }
+            }
         });
         
         // Close on backdrop click
@@ -715,12 +815,33 @@ class ESPFlasher {
         const description = dialog.querySelector('.flash-dialog-description');
         const footer = dialog.querySelector('.flash-dialog-footer');
         const cancelBtn = dialog.querySelector('#cancelFlash');
+        const chipInfoSection = dialog.querySelector('#chipInfoSection');
+        const viewLogsBtn = dialog.querySelector('#viewLogsBtn');
+        
+        // Show chip info and logs button when connected
+        if (state.state === 'initializing' && installButton.info) {
+            const info = installButton.info;
+            
+            if (chipInfoSection) {
+                chipInfoSection.style.display = 'block';
+                const chipType = dialog.querySelector('#chipType');
+                const chipMac = dialog.querySelector('#chipMac');
+                const chipFlash = dialog.querySelector('#chipFlash');
+                
+                if (chipType && info.chipFamily) chipType.textContent = info.chipFamily;
+                if (chipMac && info.macAddress) chipMac.textContent = this.formatMacAddress(info.macAddress);
+                if (chipFlash && info.flashSize) chipFlash.textContent = this.formatFlashSize(info.flashSize);
+            }
+            
+            // Show logs button once connected
+            if (viewLogsBtn) viewLogsBtn.style.display = 'block';
+        }
         
         // Map states to user-friendly messages
         const stateMessages = {
             'initializing': 'Connecting to device...',
             'preparing': 'Preparing firmware files...',
-            'erasing': 'Erasing flash memory...',
+            'erasing': 'Erasing flash memory (this may take a minute)...',
             'writing': 'Writing firmware to device...',
             'manifest': 'Loading firmware manifest...',
         };
@@ -785,8 +906,19 @@ class ESPFlasher {
                 }
             }
         }
+    }    
+    formatMacAddress(mac) {
+        if (!mac) return '-';
+        // Format MAC address with colons
+        return mac.match(/.{1,2}/g)?.join(':').toUpperCase() || mac;
     }
-
+    
+    formatFlashSize(size) {
+        if (!size) return '-';
+        // Convert bytes to MB
+        const mb = size / (1024 * 1024);
+        return `${mb.toFixed(0)} MB`;
+    }
     openChangelogBlade(release, formattedDate) {
         const blade = document.getElementById('changelogBlade');
         const title = document.getElementById('bladeReleaseTitle');

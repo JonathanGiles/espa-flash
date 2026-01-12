@@ -11,11 +11,11 @@ echo ""
 
 # Check if Python 3 is available
 if command -v python3 &> /dev/null; then
-    echo "Using Python 3 HTTP server..."
-    python3 -m http.server $PORT
+    echo "Using custom Python 3 server with CORS proxy..."
+    python3 serve.py $PORT
 elif command -v python &> /dev/null; then
-    echo "Using Python 2 HTTP server..."
-    python -m SimpleHTTPServer $PORT
+    echo "Using custom Python server with CORS proxy..."
+    python serve.py $PORT
 else
     echo "❌ Python not found. Please install Python or use another method:"
     echo "   - Node.js: npx serve . -l $PORT"

@@ -5,6 +5,10 @@
     box-sizing: border-box;
 }
 
+html {
+    scroll-behavior: smooth;
+}
+
 :root {
     --primary: #0891B2;
     --primary-dark: #0E7490;
@@ -69,6 +73,18 @@ header {
     text-align: center;
     position: relative;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    animation: fadeInDown 0.6s ease-out;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 header::before {
@@ -94,6 +110,24 @@ header::before {
 .logo-image {
     height: 80px;
     width: auto;
+    animation: fadeInScale 0.8s ease-out 0.2s both;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15));
+    transition: transform 0.3s ease;
+}
+
+.logo-image:hover {
+    transform: scale(1.05);
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .logo-icon {
@@ -496,17 +530,29 @@ main {
 
 .custom-select-dropdown {
     position: absolute;
-    top: calc(100% + 0.25rem);
+    top: calc(100% + 0.5rem);
     left: 0;
     right: 0;
     background: var(--bg-primary);
     border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    border-radius: 0.75rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
     max-height: 320px;
     overflow-y: auto;
     z-index: 1000;
     display: none;
+    animation: dropdownSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes dropdownSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .custom-select.active .custom-select-dropdown {
@@ -514,26 +560,44 @@ main {
 }
 
 .custom-select-option {
-    padding: 0.875rem 1rem;
+    padding: 1rem 1.25rem;
     cursor: pointer;
-    transition: background-color 0.15s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border-bottom: 1px solid var(--border-light);
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+    position: relative;
 }
 
 .custom-select-option:last-child {
     border-bottom: none;
 }
 
+.custom-select-option::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    background: var(--primary);
+    transition: width 0.3s ease;
+}
+
+.custom-select-option:hover::before {
+    width: 4px;
+}
+
 .custom-select-option:hover {
-    background: var(--bg-secondary);
+    background: linear-gradient(90deg, rgba(8, 145, 178, 0.05) 0%, transparent 100%);
+    transform: translateX(2px);
 }
 
 .custom-select-option.selected {
     background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%);
-    border-left: 3px solid var(--primary);
+    border-left: 4px solid var(--primary);
+    padding-left: calc(1.25rem - 4px);
 }
 
 .option-title {
@@ -755,15 +819,38 @@ button, a.btn-secondary, a.btn-primary {
     padding: 0.75rem 1.5rem;
     border: 1px solid transparent;
     border-radius: 0.375rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.btn-primary:hover::before {
+    width: 300px;
+    height: 300px;
 }
 
 .btn-primary:hover {
     background: var(--primary-dark);
-    box-shadow: 0 1px 3px rgba(8, 145, 178, 0.3);
+    box-shadow: 0 8px 16px rgba(8, 145, 178, 0.3);
+    transform: translateY(-2px);
 }
 
 .btn-primary:active {
-    transform: scale(0.98);
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(8, 145, 178, 0.3);
 }
 
 .btn-secondary {
@@ -772,16 +859,20 @@ button, a.btn-secondary, a.btn-primary {
     padding: 0.5rem 1rem;
     border: 1px solid var(--border);
     border-radius: 0.375rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-secondary:hover {
     background: var(--bg-secondary);
-    border-color: var(--text-tertiary);
-    color: var(--text-primary);
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
 }
 
 .btn-secondary:active {
-    transform: scale(0.98);
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .btn-small {
@@ -1683,6 +1774,34 @@ footer .espa-link {
     margin: 0;
 }
 
+.flash-dialog-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 0.375rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.btn-icon:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--text-tertiary);
+    color: var(--primary);
+}
+
 .flash-dialog-close {
     width: 32px;
     height: 32px;
@@ -1713,6 +1832,94 @@ footer .espa-link {
     font-size: 0.9375rem;
     line-height: 1.6;
     margin: 0;
+}
+
+/* Chip Info Section */
+.chip-info-section {
+    margin: 0 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+    border: 1px solid #BAE6FD;
+    border-radius: 0.5rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+.chip-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+
+.chip-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.chip-info-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--primary);
+}
+
+.chip-info-value {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-family: 'Courier New', monospace;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+        margin-top: 0;
+        margin-bottom: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 200px;
+        margin-top: 0;
+        margin-bottom: 0;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+}
+
+/* Flash Options */
+.flash-options {
+    margin: 0 1.5rem;
+    padding: 1rem;
+    background: #FEF3C7;
+    border: 1px solid #FCD34D;
+    border-radius: 0.5rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+.flash-option-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    user-select: none;
+}
+
+.flash-option-checkbox input[type=\"checkbox\"] {
+    margin-top: 0.125rem;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.flash-option-checkbox span {
+    line-height: 1.5;
 }
 
 .flash-dialog-footer {
@@ -1853,11 +2060,20 @@ footer .espa-link {
 .flash-success {
     text-align: center;
     padding: 2rem 1.5rem;
+    animation: successPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
-@media (max-width: 640px) {
-    .flash-success {
-        padding: 1.5rem 1rem;
+@keyframes successPop {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
     }
 }
 
@@ -1868,9 +2084,26 @@ footer .espa-link {
 }
 
 .success-icon {
-    font-size: 3.5rem;
+    font-size: 4rem;
     color: var(--secondary);
     margin-bottom: 1rem;
+    animation: successBounce 0.8s ease-out 0.3s both;
+    display: inline-block;
+}
+
+@keyframes successBounce {
+    0%, 100% {
+        transform: scale(1);
+    }
+    25% {
+        transform: scale(1.2);
+    }
+    50% {
+        transform: scale(0.9);
+    }
+    75% {
+        transform: scale(1.1);
+    }
 }
 
 .flash-success h3 {
@@ -2465,7 +2698,7 @@ footer .espa-link {
 /* Tab Panels */
 .tab-panel {
     display: none;
-    animation: fadeIn 0.25s ease;
+    animation: fadeInSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     min-height: 400px;
 }
 
@@ -2473,10 +2706,16 @@ footer .espa-link {
     display: block;
 }
 
-@keyframes fadeIn {
+@keyframes fadeInSlide {
     from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
     }
     to {
         opacity: 1;
@@ -2487,4 +2726,36 @@ footer .espa-link {
 .tab-panel > section:first-child {
     margin-top: 0;
     border-radius: 0;
+}
+
+/* ESP Web Tools Custom Styling via CSS Custom Properties */
+/* These variables penetrate Shadow DOM and theme Material Design components */
+
+:root {
+    /* Material Design 3 theme colors for ESP Web Tools */
+    --md-sys-color-primary: var(--primary);
+    --md-sys-color-on-primary: #FFFFFF;
+    --md-sys-color-primary-container: #E0F2FE;
+    --md-sys-color-on-primary-container: #075985;
+    --md-sys-color-secondary: var(--secondary);
+    --md-sys-color-on-secondary: #FFFFFF;
+    --md-sys-color-surface: var(--bg-primary);
+    --md-sys-color-on-surface: var(--text-primary);
+    --md-sys-color-surface-variant: var(--bg-secondary);
+    --md-sys-color-on-surface-variant: var(--text-secondary);
+    --md-sys-color-outline: var(--border);
+    --md-sys-color-background: var(--bg-secondary);
+    --md-sys-color-on-background: var(--text-primary);
+    
+    /* Typography */
+    --md-sys-typescale-headline-small-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --md-sys-typescale-body-medium-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    
+    /* Ripple effects */
+    --md-ripple-hover-opacity: 0.04;
+    --md-ripple-pressed-opacity: 0.12;
+    
+    /* Focus ring */
+    --md-focus-ring-color: var(--primary);
+    --md-focus-ring-width: 2px;
 }
