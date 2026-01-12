@@ -612,6 +612,9 @@ class ESPFlasher {
             ]
         };
 
+        console.log('Created manifest:', manifest);
+        console.log('Proxied firmware URLs:', parts.map(p => p.path));
+
         this.showFlashDialog(manifest);
     }
 

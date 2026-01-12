@@ -26,19 +26,29 @@ export async function onRequestGet(context) {
     }
 
     try {
-        // Fetch the remote file
+        // Fetch the remote file (follow redirects automatically)
         const response = await fetch(targetUrl, {
             headers: {
                 'User-Agent': 'ESPa-Flasher/1.0'
-            }
+            },
+            redirect: 'follow' // Follow GitHub's 302 redirects
         });
 
+        if (!response.ok) {
+            console.error(`Proxy fetch failed: ${response.status} ${response.statusText}`);
+            return new Response(`Failed to fetch: ${response.status} ${response.statusText}`, { 
+                status: response.status 
+            });
+        }
+
+        // Get the content type, default to binary
+        const contentType = response.headers.get('Content-Type') || 'application/octet-stream';
+        
         // Create new response with CORS headers
         const newResponse = new Response(response.body, {
-            status: response.status,
-            statusText: response.statusText,
+            status: 200,
             headers: {
-                'Content-Type': response.headers.get('Content-Type') || 'application/octet-stream',
+                'Content-Type': contentType,
                 'Content-Length': response.headers.get('Content-Length'),
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -49,7 +59,14 @@ export async function onRequestGet(context) {
 
         return newResponse;
     } catch (error) {
-        return new Response(`Proxy error: ${error.message}`, { status: 500 });
+        console.error('Proxy error:', error);
+        return new Response(`Proxy error: ${error.message}`, { 
+            status: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'text/plain'
+            }
+        });
     }
 }
 
