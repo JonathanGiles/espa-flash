@@ -86,8 +86,14 @@ header::before {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.875rem;
+    flex-direction: column;
+    gap: 0.75rem;
     margin-bottom: 0.625rem;
+}
+
+.logo-image {
+    height: 80px;
+    width: auto;
 }
 
 .logo-icon {
@@ -1240,9 +1246,8 @@ footer .espa-link {
         padding: 2rem 1rem;
     }
 
-    .logo {
-        flex-direction: column;
-        gap: 0.5rem;
+    .logo-image {
+        height: 60px;
     }
 
     .logo-icon {
