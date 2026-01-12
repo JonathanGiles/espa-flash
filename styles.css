@@ -539,6 +539,7 @@ main {
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
     max-height: 320px;
     overflow-y: auto;
+    overflow-x: hidden;
     z-index: 1000;
     display: none;
     animation: dropdownSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -591,7 +592,7 @@ main {
 
 .custom-select-option:hover {
     background: linear-gradient(90deg, rgba(8, 145, 178, 0.05) 0%, transparent 100%);
-    transform: translateX(2px);
+    padding-left: calc(1.25rem + 2px);
 }
 
 .custom-select-option.selected {
