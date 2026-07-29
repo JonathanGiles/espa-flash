@@ -24,19 +24,17 @@
 
         <main>
             <!-- Wireless (OTA) Flashing Notice -->
-            <div class="ota-notice">
-                <i class="fas fa-wifi"></i>
-                <div class="ota-notice-content">
-                    <strong>Already installed your eSpa? Flash it wirelessly instead.</strong>
-                    <p>
-                        If your eSpa is already wired into your spa and connected to your home Wi-Fi, you don't need to
-                        remove it or bring it inside. Just open
-                        <a href="http://espa.local/fota" target="_blank" rel="noopener">http://espa.local/fota</a>
-                        on a device on the same network and update over the air.
-                    </p>
-                    <p class="ota-notice-hint">
-                        The page below is only needed for the first-time flash, or if your eSpa can't connect to Wi-Fi.
-                    </p>
+            <div class="ota-notice-wrap">
+                <div class="ota-notice">
+                    <span class="ota-notice-icon"><i class="fas fa-wifi"></i></span>
+                    <div class="ota-notice-content">
+                        <strong>Already wired in? Update over Wi-Fi instead</strong>
+                        <p>No USB cable, no need to pull the eSpa out of your spa &mdash; just open the update page on your home network.</p>
+                    </div>
+                    <a class="ota-notice-action" href="http://espa.local/fota" target="_blank" rel="noopener">
+                        espa.local/fota
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
                 </div>
             </div>
 

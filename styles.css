@@ -314,55 +314,104 @@ main {
 }
 
 /* Wireless (OTA) flashing notice */
-.ota-notice {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    padding: 1.125rem 1.25rem;
-    margin-bottom: 1.5rem;
-    background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
-    border: 1px solid #BAE6FD;
-    border-left: 4px solid var(--primary);
-    border-radius: 0.5rem;
+.ota-notice-wrap {
+    padding: 1.5rem 2rem 0;
 }
 
-.ota-notice > i {
+.ota-notice {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0.875rem 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 0.625rem;
+}
+
+.ota-notice-icon {
     flex-shrink: 0;
-    color: var(--primary);
-    font-size: 1.375rem;
-    margin-top: 0.125rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    font-size: 0.9375rem;
+}
+
+.ota-notice-content {
+    flex: 1;
+    min-width: 0;
 }
 
 .ota-notice-content strong {
     display: block;
+    font-size: 0.9375rem;
+    font-weight: 600;
     color: var(--text-primary);
-    font-size: 1rem;
-    margin-bottom: 0.375rem;
+    line-height: 1.35;
 }
 
 .ota-notice-content p {
-    margin: 0;
-    font-size: 0.9375rem;
-    line-height: 1.55;
+    margin: 0.125rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.45;
     color: var(--text-secondary);
 }
 
-.ota-notice-content a {
+.ota-notice-action {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--bg-primary);
     color: var(--primary);
-    font-weight: 600;
-    word-break: break-all;
-}
-
-.ota-notice-content .ota-notice-hint {
-    margin-top: 0.5rem;
     font-size: 0.8125rem;
-    opacity: 0.85;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-@media (max-width: 600px) {
+.ota-notice-action:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.ota-notice-action i {
+    font-size: 0.6875rem;
+    transition: transform 0.2s ease;
+}
+
+.ota-notice-action:hover i {
+    transform: translateX(2px);
+}
+
+@media (max-width: 640px) {
+    .ota-notice-wrap {
+        padding: 1rem 1.25rem 0;
+    }
+
     .ota-notice {
-        padding: 1rem;
+        flex-wrap: wrap;
         gap: 0.75rem;
+    }
+
+    .ota-notice-content {
+        flex-basis: calc(100% - 3rem);
+    }
+
+    .ota-notice-action {
+        width: 100%;
+        justify-content: center;
     }
 }
 
