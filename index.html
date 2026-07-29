@@ -9,7 +9,7 @@
     <title>eSpa Flasher</title>
     <link rel="icon" type="image/png" href="logo_espa.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=20260111">
+    <link rel="stylesheet" href="styles.css?v=20260729">
     <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
 </head>
 <body>
@@ -23,6 +23,23 @@
         </header>
 
         <main>
+            <!-- Wireless (OTA) Flashing Notice -->
+            <div class="ota-notice">
+                <i class="fas fa-wifi"></i>
+                <div class="ota-notice-content">
+                    <strong>Already installed your eSpa? Flash it wirelessly instead.</strong>
+                    <p>
+                        If your eSpa is already wired into your spa and connected to your home Wi-Fi, you don't need to
+                        remove it or bring it inside. Just open
+                        <a href="http://espa.local/fota" target="_blank" rel="noopener">http://espa.local/fota</a>
+                        on a device on the same network and update over the air.
+                    </p>
+                    <p class="ota-notice-hint">
+                        The page below is only needed for the first-time flash, or if your eSpa can't connect to Wi-Fi.
+                    </p>
+                </div>
+            </div>
+
             <!-- Device Configuration -->
             <section class="card device-config">
                 <h2>Select Your Device</h2>
@@ -261,6 +278,17 @@ pio run -e <span id="buildTargetName4">esp32dev</span> -t uploadfs</code>
                 </button>
             </div>
             <div class="blade-content">
+                <div class="help-section">
+                    <h4>Already Installed? Flash Wirelessly</h4>
+                    <p>
+                        If your eSpa is already wired into your spa and connected to your home Wi-Fi, you can update it
+                        over the air &mdash; no USB cable and no need to remove the device. Visit
+                        <a href="http://espa.local/fota" target="_blank" rel="noopener">http://espa.local/fota</a>
+                        from any device on the same network and upload the firmware there.
+                    </p>
+                    <p class="help-note"><strong>Note:</strong> USB flashing (below) is only required for the first-time install, or if the eSpa can't join your Wi-Fi network.</p>
+                </div>
+
                 <div class="help-section">
                     <h4>Quick Start Guide</h4>
                     <ol class="help-steps">
