@@ -1,7 +1,7 @@
 // Configuration for ESPa Flasher
 // This flasher is part of the espa.diy project
 // Visit https://espa.diy for more information
-// Last updated: 2026-01-11
+// Last updated: 2026-10-28
 
 const ESP_FLASHER_CONFIG = {
     // GitHub repository owner
@@ -16,7 +16,7 @@ const ESP_FLASHER_CONFIG = {
     
     // Device targets available in your firmware
     // These will be parsed from release assets automatically
-    // Format: firmware_{target}_factory.bin and spiffs_{target}.bin
+    // Format: firmware_{target}_factory.bin
     deviceTargets: [
         { 
             id: 'esp32dev', 
@@ -43,6 +43,34 @@ const ESP_FLASHER_CONFIG = {
     
     // Default target to select
     defaultTarget: 'espa-v1',
+
+    // Flasher website release information shown in the page footer.
+    // Update these values whenever the website is released.
+    siteRelease: {
+        version: '1.1.0',
+        releasedAt: '2026-10-28T08:30:00+13:00'
+    },
+
+    // Partition offsets used by custom application and file-system flashing.
+    // Release firmware is a merged factory image and is always flashed at 0x0.
+    partitionLayouts: {
+        default8MB: {
+            applicationOffset: 0x10000,
+            fileSystemOffset: 0x670000
+        },
+        espaV2Legacy: {
+            applicationOffset: 0x20000,
+            fileSystemOffset: 0x340000
+        }
+    },
+    defaultPartitionLayout: 'default8MB',
+    partitionLayoutRules: [
+        {
+            target: 'espa-v2',
+            maximumVersion: '2.0.3',
+            layout: 'espaV2Legacy'
+        }
+    ],
     
     // Optional: GitHub Personal Access Token for private repos
     // Leave empty for public repositories
@@ -54,4 +82,3 @@ const ESP_FLASHER_CONFIG = {
 // For custom firmware repositories, update owner and repo above.
 // The flasher expects releases with files named:
 //   firmware_{target}_factory.bin
-//   spiffs_{target}.bin
