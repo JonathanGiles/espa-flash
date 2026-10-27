@@ -5,6 +5,8 @@ class ESPFlasher {
         this.releases = [];
         this.selectedTarget = config.defaultTarget || (config.deviceTargets && config.deviceTargets[0]?.id) || 'esp32dev';
         this.customChipFamily = null; // null means use target's chip family
+        this.customParts = {};
+        this.customObjectUrls = [];
         this.releasesPerPage = 10;
         this.displayedCount = 0;
         this.init();
@@ -14,8 +16,9 @@ class ESPFlasher {
         this.setupDeviceSelector();
         this.setupChipFamilySelector();
         this.setupBuildInstructions();
-        await this.loadReleases();
+        this.setupSiteReleaseInfo();
         this.setupEventListeners();
+        await this.loadReleases();
     }
 
     setupDeviceSelector() {
@@ -103,6 +106,7 @@ class ESPFlasher {
         
         // Update other parts of the UI
         this.updateChipFamilyVisibility();
+        this.applyDefaultCustomOffsets();
         this.renderReleases(this.releases);
         
         // Update build instructions
@@ -223,103 +227,196 @@ class ESPFlasher {
     }
 
     setupCustomBinaryUpload() {
-        this.firmwareFile = null;
-        this.spiffsFile = null;
+        const partTypes = ['factory', 'application', 'fileSystem'];
+        this.customParts = {};
 
-        const firmwareInput = document.getElementById('firmwareFile');
-        const spiffsInput = document.getElementById('spiffsFile');
-        const flashCustomBtn = document.getElementById('flashCustomBtn');
+        partTypes.forEach(type => {
+            const input = document.getElementById(`${type}File`);
+            const offsetInput = document.getElementById(`${type}Offset`);
+            if (!input) return;
 
-        if (firmwareInput) {
-            firmwareInput.addEventListener('change', (e) => {
-                this.handleFileSelect(e, 'firmware');
+            input.addEventListener('change', event => this.handleCustomFileSelect(event, type));
+            document.querySelector(`[data-clear-part="${type}"]`)?.addEventListener('click', () => {
+                this.clearCustomPart(type);
             });
-        }
-
-        if (spiffsInput) {
-            spiffsInput.addEventListener('change', (e) => {
-                this.handleFileSelect(e, 'spiffs');
+            offsetInput?.addEventListener('input', () => {
+                offsetInput.dataset.modified = 'true';
+                this.validateCustomParts(false);
             });
-        }
+        });
 
-        if (flashCustomBtn) {
-            flashCustomBtn.addEventListener('click', () => {
-                this.flashCustomBinary();
-            });
-        }
+        this.applyDefaultCustomOffsets();
+        document.getElementById('flashCustomBtn')?.addEventListener('click', () => this.flashCustomBinary());
     }
 
-    handleFileSelect(event, type) {
-        const file = event.target.files[0];
-        const fileNameSpan = document.getElementById(`${type}FileName`);
-        const fileLabel = event.target.nextElementSibling;
-        
-        if (file) {
-            if (type === 'firmware') {
-                this.firmwareFile = file;
-            } else {
-                this.spiffsFile = file;
+    handleCustomFileSelect(event, type) {
+        const file = event.target.files[0] || null;
+        const fileName = document.getElementById(`${type}FileName`);
+        const label = event.target.nextElementSibling;
+
+        this.customParts[type] = file;
+        if (fileName) fileName.textContent = file ? file.name : this.getCustomFilePlaceholder(type);
+        label?.classList.toggle('has-file', Boolean(file));
+        const clearButton = document.querySelector(`[data-clear-part="${type}"]`);
+        if (clearButton) clearButton.disabled = !file;
+        this.validateCustomParts(false);
+    }
+
+    clearCustomPart(type) {
+        const input = document.getElementById(`${type}File`);
+        const fileName = document.getElementById(`${type}FileName`);
+        const clearButton = document.querySelector(`[data-clear-part="${type}"]`);
+
+        if (input) {
+            input.value = '';
+            input.nextElementSibling?.classList.remove('has-file');
+        }
+        this.customParts[type] = null;
+        if (fileName) fileName.textContent = this.getCustomFilePlaceholder(type);
+        if (clearButton) clearButton.disabled = true;
+        this.validateCustomParts(false);
+    }
+
+    clearCustomFirmwareSelection() {
+        ['factory', 'application', 'fileSystem'].forEach(type => this.clearCustomPart(type));
+        this.revokeCustomObjectUrls();
+        this.applyDefaultCustomOffsets();
+    }
+
+    getCustomFilePlaceholder(type) {
+        return {
+            factory: 'Choose factory.bin file',
+            application: 'Choose firmware.bin file',
+            fileSystem: 'Choose filesystem.bin file'
+        }[type];
+    }
+
+    parseVersion(version) {
+        const match = String(version || '').trim().match(/^v?(\d+)\.(\d+)\.(\d+)/i);
+        return match ? match.slice(1).map(Number) : null;
+    }
+
+    compareVersions(left, right) {
+        const a = this.parseVersion(left);
+        const b = this.parseVersion(right);
+        if (!a || !b) return null;
+        for (let i = 0; i < 3; i++) {
+            if (a[i] !== b[i]) return a[i] - b[i];
+        }
+        return 0;
+    }
+
+    getPartitionLayout(version = null) {
+        const layouts = this.config.partitionLayouts || {};
+        const defaultName = this.config.defaultPartitionLayout;
+        let layoutName = defaultName;
+
+        if (version) {
+            const rule = (this.config.partitionLayoutRules || []).find(candidate => {
+                if (candidate.target !== this.selectedTarget) return false;
+                const comparison = this.compareVersions(version, candidate.maximumVersion);
+                return comparison !== null && comparison <= 0;
+            });
+            if (rule) layoutName = rule.layout;
+        }
+
+        return layouts[layoutName] || layouts[defaultName] || {
+            applicationOffset: 0x10000,
+            fileSystemOffset: 0x670000
+        };
+    }
+
+    applyDefaultCustomOffsets(version = null) {
+        const layout = this.getPartitionLayout(version);
+        const defaults = {
+            factory: 0x0,
+            application: layout.applicationOffset,
+            fileSystem: layout.fileSystemOffset
+        };
+
+        Object.entries(defaults).forEach(([type, offset]) => {
+            const input = document.getElementById(`${type}Offset`);
+            if (input && input.dataset.modified !== 'true') {
+                input.value = `0x${offset.toString(16).toUpperCase()}`;
             }
-            
-            if (fileNameSpan) {
-                fileNameSpan.textContent = file.name;
-            }
-            
-            if (fileLabel) {
-                fileLabel.classList.add('has-file');
+        });
+    }
+
+    parseOffset(value) {
+        const text = String(value || '').trim();
+        if (!/^(?:0x[0-9a-f]+|\d+)$/i.test(text)) return null;
+        const offset = Number.parseInt(text, text.toLowerCase().startsWith('0x') ? 16 : 10);
+        return Number.isSafeInteger(offset) && offset >= 0 ? offset : null;
+    }
+
+    validateCustomParts(showError = true) {
+        const selected = Object.entries(this.customParts).filter(([, file]) => Boolean(file));
+        let error = '';
+
+        if (!selected.length) {
+            error = 'Select at least one binary file.';
+        } else if (this.customParts.factory && selected.length > 1) {
+            error = 'A factory image must be flashed by itself.';
+        }
+
+        const offsets = new Set();
+        if (!error) {
+            for (const [type] of selected) {
+                const offset = this.parseOffset(document.getElementById(`${type}Offset`)?.value);
+                if (offset === null) {
+                    error = `Enter a valid offset for ${type}.`;
+                    break;
+                }
+                if (type === 'factory' && offset !== 0) {
+                    error = 'The factory offset must be 0x0.';
+                    break;
+                }
+                if (offsets.has(offset)) {
+                    error = 'Each selected binary must use a different offset.';
+                    break;
+                }
+                offsets.add(offset);
             }
         }
 
-        // Enable flash button if firmware is selected
-        const flashCustomBtn = document.getElementById('flashCustomBtn');
-        if (flashCustomBtn) {
-            flashCustomBtn.disabled = !this.firmwareFile;
+        const errorElement = document.getElementById('customValidationError');
+        if (errorElement) {
+            errorElement.textContent = error;
+            errorElement.style.display = showError && error ? 'flex' : 'none';
         }
+        const button = document.getElementById('flashCustomBtn');
+        if (button) button.disabled = Boolean(error);
+        return !error;
     }
 
     async flashCustomBinary() {
-        if (!this.firmwareFile) {
-            alert('Please select a firmware file');
-            return;
-        }
+        if (!this.validateCustomParts(true)) return;
+        this.revokeCustomObjectUrls();
 
-        const files = [];
-        
-        // Read firmware file
-        const firmwareData = await this.readFileAsArrayBuffer(this.firmwareFile);
-        files.push({
-            data: firmwareData,
-            address: 0x0
-        });
-
-        // Read SPIFFS file if provided
-        if (this.spiffsFile) {
-            const spiffsData = await this.readFileAsArrayBuffer(this.spiffsFile);
-            files.push({
-                data: spiffsData,
-                address: 0x290000
+        const parts = [];
+        for (const [type, file] of Object.entries(this.customParts)) {
+            if (!file) continue;
+            const data = await this.readFileAsArrayBuffer(file);
+            const url = URL.createObjectURL(new Blob([data]));
+            this.customObjectUrls.push(url);
+            parts.push({
+                path: url,
+                offset: this.parseOffset(document.getElementById(`${type}Offset`).value),
+                type
             });
         }
 
-        // Get chip family
-        const chipFamily = this.customChipFamily || this.getCurrentChipFamily();
+        const manifest = this.buildManifest({
+            name: 'Custom Firmware',
+            version: 'custom',
+            parts: parts.map(({ path, offset }) => ({ path, offset }))
+        });
+        this.showFlashDialog(manifest, { parts });
+    }
 
-        // Create manifest for ESP Web Tools
-        const manifest = {
-            name: "Custom Firmware",
-            version: "custom",
-            home_assistant_domain: "esphome",
-            new_install_prompt_erase: true,
-            builds: [{
-                chipFamily: chipFamily,
-                parts: files.map(f => ({
-                    path: URL.createObjectURL(new Blob([f.data])),
-                    offset: f.address
-                }))
-            }]
-        };
-
-        this.showFlashDialog(manifest);
+    revokeCustomObjectUrls() {
+        this.customObjectUrls.forEach(url => URL.revokeObjectURL(url));
+        this.customObjectUrls = [];
     }
 
     readFileAsArrayBuffer(file) {
@@ -347,6 +444,26 @@ class ESPFlasher {
         if (currentBuildTarget) currentBuildTarget.textContent = target;
     }
 
+    setupSiteReleaseInfo() {
+        const releaseInfo = document.getElementById('siteReleaseInfo');
+        const release = this.config.siteRelease;
+        if (!releaseInfo || !release?.version) return;
+
+        const releasedAt = release.releasedAt ? new Date(release.releasedAt) : null;
+        const hasValidDate = releasedAt && !Number.isNaN(releasedAt.getTime());
+        const formattedDate = hasValidDate
+            ? releasedAt.toLocaleString(undefined, {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+            })
+            : null;
+
+        releaseInfo.textContent = formattedDate
+            ? `Flasher v${release.version} | Released ${formattedDate}`
+            : `Flasher v${release.version}`;
+        releaseInfo.hidden = false;
+    }
+
     setupBuildInstructions() {
         const repoUrl = document.getElementById('repoUrl');
         const repoName = document.getElementById('repoName');
@@ -371,14 +488,22 @@ class ESPFlasher {
         const containerEl = document.getElementById('releasesContainer');
         const noReleasesEl = document.getElementById('noReleases');
 
+        if (!loadingEl || !containerEl || !noReleasesEl) {
+            console.error('Release-list elements are missing from the page.');
+            return;
+        }
         // Show loading state
         loadingEl.style.display = 'flex';
         containerEl.style.display = 'none';
         noReleasesEl.style.display = 'none';
 
         try {
+            const headers = this.config.githubToken
+                ? { Authorization: `Bearer ${this.config.githubToken}` }
+                : {};
             const response = await fetch(
-                `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/releases?per_page=50`
+                `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/releases?per_page=100`,
+                { headers }
             );
 
             if (!response.ok) {
@@ -446,51 +571,44 @@ class ESPFlasher {
         this.renderReleases(this.releases, true);
     }
 
-    getTargetAssets(release, target) {
-        // Find firmware and filesystem files for the selected target
-        // Handle legacy naming: 'spa-control-pcb' is synonymous with 'espa-v1'
-        const targetNames = [target];
-        if (target === 'espa-v1') {
-            targetNames.push('spa-control-pcb');
-        }
-        
-        let firmware = null;
-        let spiffs = null;
-        
-        // Try each target name
+    getTargetAsset(release, target) {
+        // Release flashing requires a merged factory image at offset 0x0.
+        // Handle the legacy target name used by older eSpa v1 releases.
+        const targetNames = target === 'espa-v1'
+            ? [target, 'spa-control-pcb']
+            : [target];
+
         for (const targetName of targetNames) {
-            const firmwarePattern = new RegExp(`firmware[_-]${targetName}[_-]?.*\\.bin$`, 'i');
-            const spiffsPattern = new RegExp(`spiffs[_-]${targetName}\\.bin$`, 'i');
-            
-            if (!firmware) {
-                firmware = release.assets.find(asset => firmwarePattern.test(asset.name));
+            const escapedTarget = targetName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const patterns = [
+                new RegExp(`^firmware[_-]${escapedTarget}[_-]factory\\.bin$`, 'i'),
+                new RegExp(`^firmware[_-]${escapedTarget}[_-].*factory.*\\.bin$`, 'i')
+            ];
+
+            for (const pattern of patterns) {
+                const asset = release.assets.find(candidate => pattern.test(candidate.name));
+                if (asset) return asset;
             }
-            if (!spiffs) {
-                spiffs = release.assets.find(asset => spiffsPattern.test(asset.name));
-            }
-            
-            // If we found both, we can stop
-            if (firmware && spiffs) break;
         }
-        
-        return { firmware, spiffs };
+
+        return null;
     }
 
     createReleaseCard(release, isFirstStable = false) {
         const card = document.createElement('div');
         card.className = 'release-card';
 
-        const date = new Date(release.published_at).toLocaleDateString('en-US', {
+        const date = new Date(release.published_at).toLocaleDateString(undefined, {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
         });
 
         // Get assets for selected target
-        const { firmware, spiffs } = this.getTargetAssets(release, this.selectedTarget);
+        const firmware = this.getTargetAsset(release, this.selectedTarget);
         
         // Skip this release if no firmware for selected target
-        if (!firmware && !spiffs) {
+        if (!firmware) {
             return null;
         }
 
@@ -548,7 +666,7 @@ class ESPFlasher {
 
     async prepareFlash(release) {
         // Get assets for selected target
-        const { firmware, spiffs } = this.getTargetAssets(release, this.selectedTarget);
+        const firmware = this.getTargetAsset(release, this.selectedTarget);
         
         if (!firmware) {
             alert('No firmware file found for the selected target.');
@@ -556,7 +674,7 @@ class ESPFlasher {
         }
         
         // Create manifest for flashing
-        await this.createAndFlashManifest(release, firmware, spiffs);
+        await this.createAndFlashManifest(release, firmware);
     }
 
     async flashWithManifest(manifestUrl) {
@@ -570,243 +688,93 @@ class ESPFlasher {
         }
     }
 
-    async createAndFlashManifest(release, firmware, spiffs) {
-        // Build parts array with proxied URLs to bypass CORS
-        const parts = [];
-        
-        // Get the base URL for absolute paths
+    async createAndFlashManifest(release, firmware) {
         const baseUrl = window.location.origin;
-        
-        // Add firmware (typically at 0x10000 for factory builds)
-        if (firmware) {
-            const proxiedUrl = `${baseUrl}/proxy?url=${encodeURIComponent(firmware.browser_download_url)}`;
-            parts.push({
-                path: proxiedUrl,
-                offset: firmware.name.includes('factory') ? 0x0 : 0x10000
-            });
-        }
-        
-        // Add filesystem if available (typically at 0x290000)
-        if (spiffs) {
-            const proxiedUrl = `${baseUrl}/proxy?url=${encodeURIComponent(spiffs.browser_download_url)}`;
-            parts.push({
-                path: proxiedUrl,
-                offset: 0x290000
-            });
-        }
-
-        // Get the appropriate chip family
-        const chipFamily = this.getCurrentChipFamily();
-
-        // Create manifest
-        const manifest = {
+        const proxiedUrl = `${baseUrl}/proxy?url=${encodeURIComponent(firmware.browser_download_url)}`;
+        const manifest = this.buildManifest({
             name: `${release.name || release.tag_name} - ${this.selectedTarget}${this.customChipFamily ? ' (Custom)' : ''}`,
             version: release.tag_name,
-            home_assistant_domain: "esphome",
-            new_install_prompt_erase: true,
-            builds: [
-                {
-                    chipFamily: chipFamily,
-                    parts: parts
-                }
-            ]
-        };
+            parts: [{ path: proxiedUrl, offset: 0x0 }]
+        });
 
-        console.log('Created manifest:', manifest);
-        console.log('Proxied firmware URLs:', parts.map(p => p.path));
-
+        console.log('Created release manifest:', manifest);
         this.showFlashDialog(manifest);
     }
 
-    showFlashDialog(manifest) {
-        // Store manifest for potential access
-        this.currentManifest = manifest;
-        
-        // Create ESP Web Tools install button
-        const installButton = document.createElement('esp-web-install-button');
-        
-        // Set manifest as a data URL that ESP Web Tools can fetch
-        const manifestJson = JSON.stringify(manifest);
-        const dataUrl = 'data:application/json;charset=utf-8,' + encodeURIComponent(manifestJson);
-        installButton.manifest = dataUrl;
-        
-        // Always erase first (no prompt)
-        installButton.setAttribute('erase-first', 'true');
-        
-        // Create custom button for the activate slot
-        const customButton = document.createElement('button');
-        customButton.setAttribute('slot', 'activate');
-        customButton.className = 'btn-primary';
-        customButton.innerHTML = '<i class="fas fa-bolt"></i> Connect & Flash';
-        installButton.appendChild(customButton);
-        
-        // Create a temporary dialog
-        const dialog = document.createElement('dialog');
-        dialog.className = 'flash-dialog';
-        dialog.innerHTML = `
-            <div class="flash-dialog-content">
-                <div class="flash-dialog-header">
-                    <div class="flash-dialog-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                            <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                    <h2>Flash Firmware</h2>
-                    <div class="flash-dialog-header-actions">
-                        <button class="btn-icon" id="viewLogsBtn" title="View console logs" style="display: none;">
-                            <i class="fas fa-terminal"></i>
-                        </button>
-                        <button class="flash-dialog-close" id="closeDialog" aria-label="Close">
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="chip-info-section" id="chipInfoSection" style="display: none;">
-                    <div class="chip-info-grid">
-                        <div class="chip-info-item">
-                            <span class="chip-info-label">Chip:</span>
-                            <span class="chip-info-value" id="chipType">-</span>
-                        </div>
-                        <div class="chip-info-item">
-                            <span class="chip-info-label">MAC Address:</span>
-                            <span class="chip-info-value" id="chipMac">-</span>
-                        </div>
-                        <div class="chip-info-item">
-                            <span class="chip-info-label">Flash Size:</span>
-                            <span class="chip-info-value" id="chipFlash">-</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="flash-dialog-description">
-                    Connect your ESP device via USB and click the button below to begin flashing.
-                </p>
-                <div class="flash-progress" id="flashProgress" style="display: none;">
-                    <div class="progress-header">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <span id="progressMessage">Preparing...</span>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" id="progressBar"></div>
-                    </div>
-                    <div class="progress-details" id="progressDetails"></div>
-                </div>
-                <div class="flash-success" id="flashSuccess" style="display: none;">
-                    <div class="success-icon">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <h3>Flash Complete!</h3>
-                    <p>Your device has been successfully flashed and is ready to use.</p>
-                    <div class="success-actions">
-                        <button id="openConsole" class="btn-primary">
-                            <i class="fas fa-terminal"></i>
-                            View Console & Logs
-                        </button>
-                        <button id="restartDevice" class="btn-secondary">
-                            <i class="fas fa-redo"></i>
-                            Restart Device
-                        </button>
-                    </div>
-                </div>
-                <div class="flash-dialog-footer">
-                    <div id="flashButtonContainer"></div>
-                    <button id="cancelFlash" class="btn-secondary">
-                        Cancel
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        // Add button to our modal
-        const buttonContainer = dialog.querySelector('#flashButtonContainer');
-        buttonContainer.appendChild(installButton);
-        document.body.appendChild(dialog);
-        
-        dialog.showModal();
-        
-        const closeDialog = () => {
-            dialog.close();
-            dialog.remove();
+    buildManifest({ name, version, parts }) {
+        return {
+            name,
+            version,
+            home_assistant_domain: 'esphome',
+            new_install_prompt_erase: true,
+            builds: [{
+                chipFamily: this.getCurrentChipFamily(),
+                parts
+            }]
         };
-        
-        dialog.querySelector('#closeDialog').addEventListener('click', closeDialog);
-        dialog.querySelector('#cancelFlash').addEventListener('click', closeDialog);
-        
-        // Hide our modal when ESP Web Tools dialog opens
+    }
+
+    restorePageInteraction() {
+        document.body.style.removeProperty('overflow');
+        document.documentElement.style.removeProperty('overflow');
+    }
+
+    cleanupNativeInstaller(observer = null, { revokeUrls = true } = {}) {
+        observer?.disconnect();
+        this.nativeInstallHost?.remove();
+        this.nativeInstallHost = null;
+        if (revokeUrls) this.revokeCustomObjectUrls();
+        this.restorePageInteraction();
+    }
+
+    showFlashDialog(manifest, context = {}) {
+        // ESP Web Tools owns the complete modal workflow. The site creates only
+        // a temporary install button and cleans it up when the native dialog
+        // emits its public `closed` event.
+        // Remove any stale installer host, but keep the object URLs belonging
+        // to this manifest alive until ESP Web Tools closes its dialog.
+        this.cleanupNativeInstaller(null, { revokeUrls: false });
+        this.currentManifest = manifest;
+
+        const installButton = document.createElement('esp-web-install-button');
+        const manifestJson = JSON.stringify(manifest);
+        installButton.manifest =
+            'data:application/json;charset=utf-8,' + encodeURIComponent(manifestJson);
+        installButton.setAttribute('erase-first', 'true');
+
+        const activateButton = document.createElement('button');
+        activateButton.type = 'button';
+        activateButton.slot = 'activate';
+        activateButton.textContent = 'Connect & Flash';
+        installButton.appendChild(activateButton);
+
+        const host = document.createElement('div');
+        host.hidden = true;
+        host.appendChild(installButton);
+        document.body.appendChild(host);
+        this.nativeInstallHost = host;
+
         const observer = new MutationObserver(() => {
             const espDialog = document.querySelector('ewt-install-dialog');
-            if (espDialog) {
-                dialog.style.display = 'none';
-            }
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-        
-        // Show our modal again if ESP dialog closes without installing
-        installButton.addEventListener('state-changed', (e) => {
-            if (e.detail.state === 'error' || e.detail.state === 'installed') {
-                const espDialog = document.querySelector('ewt-install-dialog');
-                if (!espDialog) {
-                    dialog.style.display = 'block';
-                }
-            }
-        });
-        
-        // View logs button in header
-        const viewLogsBtn = dialog.querySelector('#viewLogsBtn');
-        if (viewLogsBtn) {
-            viewLogsBtn.addEventListener('click', () => {
-                if (installButton && typeof installButton.openLogsDialog === 'function') {
-                    installButton.openLogsDialog();
-                }
-            });
-        }
-        
-        // Console button in success screen
-        dialog.querySelector('#openConsole')?.addEventListener('click', () => {
-            if (installButton && typeof installButton.openLogsDialog === 'function') {
-                installButton.openLogsDialog();
-            }
-        });
-        
-        // Restart device button
-        dialog.querySelector('#restartDevice')?.addEventListener('click', async () => {
-            try {
-                const restartBtn = dialog.querySelector('#restartDevice');
-                if (restartBtn) {
-                    restartBtn.disabled = true;
-                    restartBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Restarting...';
-                }
-                
-                // Access the port from ESP Web Tools
-                if (installButton.port) {
-                    await installButton.port.reset();
-                    setTimeout(() => {
-                        if (restartBtn) {
-                            restartBtn.innerHTML = '<i class="fas fa-check"></i> Restarted';
-                        }
-                    }, 1000);
-                }
-            } catch (err) {
-                console.error('Failed to restart device:', err);
-                const restartBtn = dialog.querySelector('#restartDevice');
-                if (restartBtn) {
-                    restartBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Restart Failed';
-                }
-            }
-        });
-        
-        // Close on backdrop click
-        dialog.addEventListener('click', (e) => {
-            if (e.target === dialog) {
-                closeDialog();
-            }
-        });
+            if (!espDialog) return;
 
-        // Listen for flash events
-        installButton.addEventListener('state-changed', (e) => {
-            this.handleFlashState(e.detail, dialog, installButton);
+            observer.disconnect();
+            espDialog.addEventListener('closed', () => {
+                if (context.parts) {
+                    // The public ESP Web Tools lifecycle does not expose whether
+                    // the dialog closed after success, failure, or cancellation.
+                    // Clear custom selections whenever that workflow closes so
+                    // a local binary is never left armed for an accidental reflash.
+                    this.clearCustomFirmwareSelection();
+                }
+                this.cleanupNativeInstaller();
+            }, { once: true });
         });
+        observer.observe(document.body, { childList: true });
+
+        // Keep this synchronous with the user's Flash click so Web Serial retains
+        // the required user activation.
+        activateButton.click();
     }
 
     handleFlashState(state, dialog, installButton) {
@@ -850,7 +818,9 @@ class ESPFlasher {
         };
         
         if (state.state === 'error') {
+            if (description) description.style.display = 'none';
             if (progressDiv) {
+                progressDiv.style.display = 'block';
                 progressDiv.innerHTML = `
                     <div class="progress-error">
                         <i class="fas fa-exclamation-circle"></i>
@@ -859,6 +829,8 @@ class ESPFlasher {
                     </div>
                 `;
             }
+            if (footer) footer.style.display = 'flex';
+            if (cancelBtn) cancelBtn.textContent = 'Close';
         } else if (state.state === 'installed') {
             // Hide progress, show success
             if (progressDiv) progressDiv.style.display = 'none';
@@ -882,7 +854,7 @@ class ESPFlasher {
             if (description) description.style.display = 'none';
             if (progressDiv) progressDiv.style.display = 'block';
             if (footer) {
-                const buttonContainer = footer.querySelector('.flash-dialog-button-container');
+                const buttonContainer = footer.querySelector('#flashButtonContainer');
                 if (buttonContainer) buttonContainer.style.display = 'none';
             }
             
@@ -904,8 +876,8 @@ class ESPFlasher {
             if (state.state === 'writing') {
                 if (state.details?.includes('0x0') || state.details?.includes('firmware')) {
                     if (progressMessage) progressMessage.textContent = '📦 Writing firmware binary...';
-                } else if (state.details?.includes('0x290000') || state.details?.includes('spiffs')) {
-                    if (progressMessage) progressMessage.textContent = '💾 Writing filesystem (SPIFFS)...';
+                } else if (state.details?.toLowerCase().includes('filesystem') || state.details?.toLowerCase().includes('spiffs')) {
+                    if (progressMessage) progressMessage.textContent = '💾 Writing file system...';
                 }
             }
         }
