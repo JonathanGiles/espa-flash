@@ -44,13 +44,6 @@ const ESP_FLASHER_CONFIG = {
     // Default target to select
     defaultTarget: 'espa-v1',
 
-    // Flasher website release information shown in the page footer.
-    // Update these values whenever the website is released.
-    siteRelease: {
-        version: '1.1.0',
-        releasedAt: '2026-10-28T08:30:00+13:00'
-    },
-
     // Partition offsets used by custom application and file-system flashing.
     // Release firmware is a merged factory image and is always flashed at 0x0.
     partitionLayouts: {

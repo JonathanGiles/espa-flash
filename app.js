@@ -1,4 +1,10 @@
 // Main application logic
+// Update these values whenever the flasher website is released.
+const ESP_FLASHER_RELEASE = Object.freeze({
+    version: '1.1.0',
+    releasedAt: '2026-10-27T18:58:00+13:00'
+});
+
 class ESPFlasher {
     constructor(config) {
         this.config = config;
@@ -7,8 +13,10 @@ class ESPFlasher {
         this.customChipFamily = null; // null means use target's chip family
         this.customParts = {};
         this.customObjectUrls = [];
-        this.releasesPerPage = 10;
-        this.displayedCount = 0;
+        this.releasesPerPage = 6;
+        this.releasePage = 1;
+        this.hasMoreReleases = true;
+        this.loadingMoreReleases = false;
         this.init();
     }
 
@@ -446,7 +454,7 @@ class ESPFlasher {
 
     setupSiteReleaseInfo() {
         const releaseInfo = document.getElementById('siteReleaseInfo');
-        const release = this.config.siteRelease;
+        const release = ESP_FLASHER_RELEASE;
         if (!releaseInfo || !release?.version) return;
 
         const releasedAt = release.releasedAt ? new Date(release.releasedAt) : null;
@@ -483,44 +491,81 @@ class ESPFlasher {
         }
     }
 
+    async fetchReleasePage(page) {
+        const headers = this.config.githubToken
+            ? { Authorization: `Bearer ${this.config.githubToken}` }
+            : {};
+        const response = await fetch(
+            `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/releases` +
+            `?per_page=${this.releasesPerPage}&page=${page}`,
+            { headers }
+        );
+
+        if (!response.ok) {
+            throw new Error(`GitHub API error: ${response.status}`);
+        }
+
+        const releases = await response.json();
+        return {
+            releases,
+            hasMore: releases.length === this.releasesPerPage
+        };
+    }
+
+    async loadReleaseBatch() {
+        const compatibleReleases = [];
+
+        // A GitHub page can contain releases that do not have a factory image
+        // for the selected target. Continue requesting pages until six cards can
+        // be displayed, or GitHub indicates that there are no more releases.
+        while (compatibleReleases.length < this.releasesPerPage && this.hasMoreReleases) {
+            const result = await this.fetchReleasePage(this.releasePage);
+            this.releasePage += 1;
+            this.hasMoreReleases = result.hasMore;
+            this.releases.push(...result.releases);
+
+            result.releases.forEach(release => {
+                if (
+                    compatibleReleases.length < this.releasesPerPage &&
+                    this.getTargetAsset(release, this.selectedTarget)
+                ) {
+                    compatibleReleases.push(release);
+                }
+            });
+        }
+
+        return compatibleReleases;
+    }
+
     async loadReleases() {
         const loadingEl = document.getElementById('loadingReleases');
         const containerEl = document.getElementById('releasesContainer');
         const noReleasesEl = document.getElementById('noReleases');
+        const loadMoreContainer = document.getElementById('loadMoreContainer');
 
         if (!loadingEl || !containerEl || !noReleasesEl) {
             console.error('Release-list elements are missing from the page.');
             return;
         }
-        // Show loading state
+
         loadingEl.style.display = 'flex';
         containerEl.style.display = 'none';
         noReleasesEl.style.display = 'none';
+        if (loadMoreContainer) loadMoreContainer.style.display = 'none';
+
+        this.releasePage = 1;
+        this.hasMoreReleases = true;
+        this.releases = [];
 
         try {
-            const headers = this.config.githubToken
-                ? { Authorization: `Bearer ${this.config.githubToken}` }
-                : {};
-            const response = await fetch(
-                `https://api.github.com/repos/${this.config.owner}/${this.config.repo}/releases?per_page=100`,
-                { headers }
-            );
-
-            if (!response.ok) {
-                throw new Error(`GitHub API error: ${response.status}`);
-            }
-
-            const releases = await response.json();
-            this.releases = releases;
-
-            // Hide loading
+            const releases = await this.loadReleaseBatch();
             loadingEl.style.display = 'none';
 
             if (releases.length === 0) {
                 noReleasesEl.style.display = 'flex';
             } else {
                 containerEl.style.display = 'grid';
-                this.renderReleases(releases);
+                this.renderReleases(releases, false);
             }
         } catch (error) {
             console.error('Error loading releases:', error);
@@ -534,41 +579,49 @@ class ESPFlasher {
     renderReleases(releases, append = false) {
         const container = document.getElementById('releasesContainer');
         const loadMoreContainer = document.getElementById('loadMoreContainer');
-        
-        if (!append) {
-            container.innerHTML = '';
-            this.displayedCount = 0;
-        }
+        if (!container) return;
+
+        if (!append) container.innerHTML = '';
 
         let isFirstStableRelease = !append;
-        let rendered = 0;
-        
-        for (let i = this.displayedCount; i < releases.length && rendered < this.releasesPerPage; i++) {
-            const release = releases[i];
+        releases.forEach(release => {
             const releaseCard = this.createReleaseCard(release, isFirstStableRelease);
-            if (releaseCard) {
-                container.appendChild(releaseCard);
-                rendered++;
-                // Mark that we've seen the first stable release
-                if (!release.prerelease && isFirstStableRelease) {
-                    isFirstStableRelease = false;
-                }
+            if (!releaseCard) return;
+
+            container.appendChild(releaseCard);
+            if (!release.prerelease && isFirstStableRelease) {
+                isFirstStableRelease = false;
             }
-            this.displayedCount++;
-        }
-        
-        // Show or hide Load More button
+        });
+
         if (loadMoreContainer) {
-            if (this.displayedCount < releases.length) {
-                loadMoreContainer.style.display = 'flex';
-            } else {
-                loadMoreContainer.style.display = 'none';
-            }
+            loadMoreContainer.style.display = this.hasMoreReleases ? 'flex' : 'none';
         }
     }
 
-    loadMoreReleases() {
-        this.renderReleases(this.releases, true);
+    async loadMoreReleases() {
+        if (this.loadingMoreReleases || !this.hasMoreReleases) return;
+
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        this.loadingMoreReleases = true;
+        if (loadMoreBtn) {
+            loadMoreBtn.disabled = true;
+            loadMoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+        }
+
+        try {
+            const releases = await this.loadReleaseBatch();
+            this.renderReleases(releases, true);
+        } catch (error) {
+            console.error('Error loading more releases:', error);
+            alert(`Unable to load more releases: ${error.message}`);
+        } finally {
+            this.loadingMoreReleases = false;
+            if (loadMoreBtn) {
+                loadMoreBtn.disabled = false;
+                loadMoreBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Load More Releases';
+            }
+        }
     }
 
     getTargetAsset(release, target) {
