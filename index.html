@@ -156,42 +156,59 @@
                 </p>
                 
                 <div class="custom-binary-upload">
-                    <div class="upload-section">
-                        <h3>
-                            <i class="fas fa-file-code"></i>
-                            Firmware Binary
-                        </h3>
+                    <div class="upload-section custom-part" data-part="factory">
+                        <h3><i class="fas fa-box"></i> Factory Binary</h3>
                         <div class="file-upload-area">
-                            <input type="file" id="firmwareFile" accept=".bin" class="file-input">
-                            <label for="firmwareFile" class="file-label">
+                            <input type="file" id="factoryFile" accept=".bin" class="file-input">
+                            <label for="factoryFile" class="file-label">
                                 <i class="fas fa-cloud-upload-alt"></i>
-                                <span id="firmwareFileName">Choose firmware.bin file</span>
+                                <span id="factoryFileName">Choose factory.bin file</span>
                             </label>
                         </div>
+                        <label for="factoryOffset">Offset</label>
+                        <input id="factoryOffset" class="device-select custom-offset" value="0x0" disabled>
+                        <button type="button" class="btn-secondary btn-small clear-custom-file" data-clear-part="factory" disabled>
+                            <i class="fas fa-times"></i> Clear Factory
+                        </button>
                     </div>
-                    
-                    <div class="upload-section">
-                        <h3>
-                            <i class="fas fa-database"></i>
-                            SPIFFS Binary (Optional)
-                        </h3>
+                    <div class="upload-section custom-part" data-part="application">
+                        <h3><i class="fas fa-file-code"></i> Application Binary</h3>
                         <div class="file-upload-area">
-                            <input type="file" id="spiffsFile" accept=".bin" class="file-input">
-                            <label for="spiffsFile" class="file-label">
+                            <input type="file" id="applicationFile" accept=".bin" class="file-input">
+                            <label for="applicationFile" class="file-label">
                                 <i class="fas fa-cloud-upload-alt"></i>
-                                <span id="spiffsFileName">Choose spiffs.bin file</span>
+                                <span id="applicationFileName">Choose firmware.bin file</span>
                             </label>
                         </div>
+                        <label for="applicationOffset">Offset</label>
+                        <input id="applicationOffset" class="device-select custom-offset" inputmode="text">
+                        <button type="button" class="btn-secondary btn-small clear-custom-file" data-clear-part="application" disabled>
+                            <i class="fas fa-times"></i> Clear Application
+                        </button>
+                    </div>
+                    <div class="upload-section custom-part" data-part="fileSystem">
+                        <h3><i class="fas fa-database"></i> File-system Binary</h3>
+                        <div class="file-upload-area">
+                            <input type="file" id="fileSystemFile" accept=".bin" class="file-input">
+                            <label for="fileSystemFile" class="file-label">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span id="fileSystemFileName">Choose filesystem.bin file</span>
+                            </label>
+                        </div>
+                        <label for="fileSystemOffset">Offset</label>
+                        <input id="fileSystemOffset" class="device-select custom-offset" inputmode="text">
+                        <button type="button" class="btn-secondary btn-small clear-custom-file" data-clear-part="fileSystem" disabled>
+                            <i class="fas fa-times"></i> Clear File-system
+                        </button>
                     </div>
                 </div>
-
                 <div class="upload-info">
                     <div class="info-card">
                         <i class="fas fa-info-circle"></i>
-                        <p>Firmware will be flashed to offset 0x0. SPIFFS (if provided) will be flashed to offset 0x290000. Make sure you select the correct chip family above before flashing.</p>
+                        <p>Use a factory image by itself, or select an application and optionally a file-system image. Application and file-system offsets default from the configured partition layout and may be changed.</p>
                     </div>
+                    <div id="customValidationError" class="info-card" style="display: none;" role="alert"></div>
                 </div>
-
                 <div class="upload-actions">
                     <button id="flashCustomBtn" class="btn-primary" disabled>
                         <i class="fas fa-bolt"></i>
@@ -228,7 +245,7 @@ pio run -e <span id="buildTargetName">esp32dev</span></code>
 pio run -e <span id="buildTargetName4">esp32dev</span> -t uploadfs</code>
                         <p style="margin-top: 1rem;"><strong>Alternative: Flash using this website:</strong></p>
                         <p style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);">
-                            <i class="fas fa-globe"></i> The binaries will be located in <code>.pio/build/<span id="buildTargetPath">esp32dev</span>/firmware.bin</code> and <code>spiffs.bin</code>. You can upload and flash them using the <strong>"Flash Custom Binary"</strong> tab above.
+                            <i class="fas fa-globe"></i> Use a merged factory image at <code>0x0</code>, or upload <code>firmware.bin</code> as an application image and optionally <code>spiffs.bin</code> as a file-system image. The custom tab supplies partition defaults and allows application and file-system offsets to be changed.
                         </p>
                     </div>
                 </div>
@@ -238,6 +255,7 @@ pio run -e <span id="buildTargetName4">esp32dev</span> -t uploadfs</code>
 
         <footer>
             <p>Part of the <a href="https://espa.diy" target="_blank" class="espa-link"><strong>espa.diy</strong></a> project</p>
+            <p id="siteReleaseInfo" hidden></p>
         </footer>
     </div>
 
@@ -367,7 +385,7 @@ pio run -e <span id="buildTargetName4">esp32dev</span> -t uploadfs</code>
         </div>
     </div>
 
-    <script src="config.js?v=20260111"></script>
-    <script src="app.js?v=20260111"></script>
+    <script src="config.js?v=20261028-1"></script>
+    <script src="app.js?v=20261028-1"></script>
 </body>
 </html>
