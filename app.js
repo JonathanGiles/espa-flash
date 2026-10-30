@@ -314,28 +314,18 @@ class ESPFlasher {
         return 0;
     }
 
-    getPartitionLayout(version = null) {
+    getPartitionLayout() {
         const layouts = this.config.partitionLayouts || {};
         const defaultName = this.config.defaultPartitionLayout;
-        let layoutName = defaultName;
 
-        if (version) {
-            const rule = (this.config.partitionLayoutRules || []).find(candidate => {
-                if (candidate.target !== this.selectedTarget) return false;
-                const comparison = this.compareVersions(version, candidate.maximumVersion);
-                return comparison !== null && comparison <= 0;
-            });
-            if (rule) layoutName = rule.layout;
-        }
-
-        return layouts[layoutName] || layouts[defaultName] || {
+        return layouts[defaultName] || {
             applicationOffset: 0x10000,
             fileSystemOffset: 0x670000
         };
     }
 
-    applyDefaultCustomOffsets(version = null) {
-        const layout = this.getPartitionLayout(version);
+    applyDefaultCustomOffsets() {
+        const layout = this.getPartitionLayout();
         const defaults = {
             factory: 0x0,
             application: layout.applicationOffset,
