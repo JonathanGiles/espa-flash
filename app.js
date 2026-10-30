@@ -1,8 +1,8 @@
 // Main application logic
 // Update these values whenever the flasher website is released.
 const ESP_FLASHER_RELEASE = Object.freeze({
-    version: '1.1.0',
-    releasedAt: '2026-10-27T18:58:00+13:00'
+    version: '1.1.1',
+    releasedAt: '2026-10-30T21:36:00+13:00'
 });
 
 class ESPFlasher {
@@ -134,7 +134,7 @@ class ESPFlasher {
         
         // Listen for chip family changes
         chipFamilySelect.addEventListener('change', (e) => {
-            this.customChipFamily = e.target.value;
+            this.customChipFamily = e.target.value ? e.target.value : null;
         });
     }
 
@@ -386,7 +386,7 @@ class ESPFlasher {
             errorElement.style.display = showError && error ? 'flex' : 'none';
         }
         const button = document.getElementById('flashCustomBtn');
-        if (button) button.disabled = Boolean(error);
+        if (button) button.disabled = showError && Boolean(error);
         return !error;
     }
 
@@ -1111,11 +1111,14 @@ class ESPFlasher {
     }
 
     truncateText(text, maxLength) {
+        if (typeof text !== 'string') return '';
         if (text.length <= maxLength) return text;
         return text.substring(0, maxLength) + '...';
     }
 }
 
+// NOTE: ESP_FLASHER_CONFIG must be loaded globally before this script.
+// Typically, config.js should be included via a <script> tag before app.js.
 // Initialize the app when config is loaded
 if (typeof ESP_FLASHER_CONFIG !== 'undefined') {
     window.flasher = new ESPFlasher(ESP_FLASHER_CONFIG);
