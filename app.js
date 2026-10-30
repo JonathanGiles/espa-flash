@@ -16,6 +16,8 @@ class ESPFlasher {
         this.releasesPerPage = 6;
         this.releasePage = 1;
         this.hasMoreReleases = true;
+        this.hasMoreReleasePages = true;
+        this.pendingCompatibleReleases = [];
         this.loadingMoreReleases = false;
         this.init();
     }
@@ -97,6 +99,7 @@ class ESPFlasher {
     
     selectDevice(target) {
         this.selectedTarget = target.id;
+        this.pendingCompatibleReleases = [];
         
         // Update selected state in dropdown
         const dropdown = document.getElementById('deviceTargetDropdown');
@@ -505,25 +508,29 @@ class ESPFlasher {
     async loadReleaseBatch() {
         const compatibleReleases = [];
 
+        compatibleReleases.push(...this.pendingCompatibleReleases.splice(0, this.releasesPerPage));
+
         // A GitHub page can contain releases that do not have a factory image
         // for the selected target. Continue requesting pages until six cards can
         // be displayed, or GitHub indicates that there are no more releases.
-        while (compatibleReleases.length < this.releasesPerPage && this.hasMoreReleases) {
+        while (compatibleReleases.length < this.releasesPerPage && this.hasMoreReleasePages) {
             const result = await this.fetchReleasePage(this.releasePage);
             this.releasePage += 1;
-            this.hasMoreReleases = result.hasMore;
+            this.hasMoreReleasePages = result.hasMore;
             this.releases.push(...result.releases);
 
             result.releases.forEach(release => {
-                if (
-                    compatibleReleases.length < this.releasesPerPage &&
-                    this.getTargetAsset(release, this.selectedTarget)
-                ) {
+                if (this.getTargetAsset(release, this.selectedTarget)) {
+                    if (compatibleReleases.length < this.releasesPerPage) {
                     compatibleReleases.push(release);
+                    } else {
+                        this.pendingCompatibleReleases.push(release);
+                    }
                 }
             });
         }
 
+        this.hasMoreReleases = this.hasMoreReleasePages || this.pendingCompatibleReleases.length > 0;
         return compatibleReleases;
     }
 
@@ -545,6 +552,8 @@ class ESPFlasher {
 
         this.releasePage = 1;
         this.hasMoreReleases = true;
+        this.hasMoreReleasePages = true;
+        this.pendingCompatibleReleases = [];
         this.releases = [];
 
         try {
@@ -568,6 +577,7 @@ class ESPFlasher {
 
     renderReleases(releases, append = false) {
         const container = document.getElementById('releasesContainer');
+        const noReleasesEl = document.getElementById('noReleases');
         const loadMoreContainer = document.getElementById('loadMoreContainer');
         if (!container) return;
 
@@ -583,6 +593,10 @@ class ESPFlasher {
                 isFirstStableRelease = false;
             }
         });
+
+        const hasRenderedReleases = container.children.length > 0;
+        container.style.display = hasRenderedReleases ? 'grid' : 'none';
+        if (noReleasesEl) noReleasesEl.style.display = hasRenderedReleases ? 'none' : 'flex';
 
         if (loadMoreContainer) {
             loadMoreContainer.style.display = this.hasMoreReleases ? 'flex' : 'none';
